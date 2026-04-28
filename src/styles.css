@@ -1,0 +1,150 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.overlay-panel {
+  width: 100%;
+  min-height: 100vh;
+  padding: 12px;
+  background: rgba(12, 16, 25, 0.9);
+  color: #f7fbff;
+  border: 1px solid rgba(111, 168, 255, 0.35);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.top-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 4px;
+}
+
+.top-line strong {
+  font-size: 1.2rem;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.top-line span {
+  color: #9ec2ff;
+  font-size: 0.86rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-queue {
+  display: grid;
+  gap: 8px;
+}
+
+.action-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: rgba(23, 28, 41, 0.9);
+  border: 1px solid rgba(136, 175, 241, 0.25);
+  border-radius: 8px;
+  padding: 9px 10px;
+  min-height: 40px;
+  overflow: hidden;
+}
+
+.action-block.is-current {
+  background: rgba(39, 96, 255, 0.42);
+  border-color: rgba(143, 181, 255, 0.7);
+}
+
+.action-block.is-placeholder {
+  opacity: 0.5;
+}
+
+.action-block.is-past-due {
+  background: rgba(22, 24, 30, 0.72);
+  border-color: rgba(160, 168, 182, 0.28);
+}
+
+.action-block.is-past-due .action-meta,
+.action-block.is-past-due .action-text {
+  color: rgba(187, 196, 212, 0.66);
+}
+
+.action-meta {
+  color: #c8daff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.action-text {
+  font-size: 0.9rem;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-block.is-selection .action-text {
+  text-align: left;
+}
+
+.action-block.is-selection {
+  background: rgba(190, 150, 30, 0.3);
+  border-color: rgba(255, 219, 120, 0.75);
+}
+
+.action-block.is-selection .action-meta,
+.action-block.is-selection .action-text {
+  color: rgba(255, 239, 186, 0.96);
+}
+
+
+.upcoming-decisions {
+  display: grid;
+  gap: 6px;
+}
+
+.upcoming-decisions:empty,
+.decision-content:empty {
+  display: none;
+}
+
+.decision-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(31, 41, 60, 0.8);
+  border: 1px solid rgba(136, 175, 241, 0.25);
+}
+
+.decision-row .action-text {
+  text-align: right;
+}
+
+.decision-content {
+  display: grid;
+  gap: 8px;
+}

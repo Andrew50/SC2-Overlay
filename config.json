@@ -1,4 +1,5 @@
 {
+  "playerRace": "terran",
   "window": {
     "width": 420,
     "height": 320,
@@ -15,18 +16,20 @@
   "hotkeys": {
     "globalEnabled": true,
     "global": {
-      "left": "Alt+Left",
-      "right": "Alt+Right",
-      "pause": "Alt+Down",
-      "reset": "Alt+Up",
-      "next": "Alt+N"
+      "left": "F1",
+      "middle": "F2",
+      "right": "F3",
+      "reset": "F4",
+      "next": "F5",
+      "pause": "F6"
     },
     "focused": {
-      "left": "ArrowLeft",
-      "right": "ArrowRight",
-      "pause": "Space",
-      "reset": "KeyR",
-      "next": "KeyN"
+      "left": "F1",
+      "middle": "F2",
+      "right": "F3",
+      "reset": "F4",
+      "next": "F5",
+      "pause": "F6"
     }
   },
   "timer": {
@@ -39,7 +42,6 @@
     "fontScale": 1
   },
   "data": {
-    "indexPath": "builds/index.json",
-    "defaultRootBuildId": "example.root"
+    "buildsPath": "builds"
   }
 }

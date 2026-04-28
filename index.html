@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SC2 Overlay Prototype</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="overlay-panel">
+      <header class="top-line">
+        <span id="branch-value">Branch: Loading...</span>
+        <strong id="timer-value">00:00</strong>
+      </header>
+
+      <section id="action-queue" class="action-queue"></section>
+      <section id="upcoming-decisions" class="upcoming-decisions"></section>
+      <section id="decision-content" class="decision-content"></section>
+    </main>
+    <script type="module" src="/src/renderer.ts"></script>
+  </body>
+</html>

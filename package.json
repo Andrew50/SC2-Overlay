@@ -1,0 +1,26 @@
+{
+  "name": "sc2-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SC2 build overlay prototype using Electron + TypeScript + HTML/CSS",
+  "main": "dist-electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "validate:data": "tsx scripts/validate-data.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "electron": "^31.7.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.11",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "types": [
+      "node",
+      "electron"
+    ],
+    "baseUrl": "."
+  },
+  "include": [
+    "electron/**/*.ts",
+    "src/**/*.ts",
+    "scripts/**/*.ts"
+  ]
+}

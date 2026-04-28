@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc2-overlay.local/schemas/config.schema.json",
+  "type": "object",
+  "required": ["playerRace", "window", "hotkeys", "timer", "ui", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "playerRace": { "type": "string", "enum": ["terran", "zerg", "protoss"] },
+    "window": {
+      "type": "object",
+      "required": [
+        "width",
+        "height",
+        "minWidth",
+        "minHeight",
+        "opacity",
+        "alwaysOnTop",
+        "transparent",
+        "frame",
+        "clickThrough"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "number", "minimum": 200 },
+        "height": { "type": "number", "minimum": 120 },
+        "minWidth": { "type": "number", "minimum": 100 },
+        "minHeight": { "type": "number", "minimum": 100 },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "opacity": { "type": "number", "minimum": 0.1, "maximum": 1 },
+        "alwaysOnTop": { "type": "boolean" },
+        "transparent": { "type": "boolean" },
+        "frame": { "type": "boolean" },
+        "clickThrough": { "type": "boolean" }
+      }
+    },
+    "hotkeys": {
+      "type": "object",
+      "required": ["globalEnabled", "global", "focused"],
+      "additionalProperties": false,
+      "properties": {
+        "globalEnabled": { "type": "boolean" },
+        "global": { "$ref": "#/$defs/hotkeyMap" },
+        "focused": { "$ref": "#/$defs/hotkeyMap" }
+      }
+    },
+    "timer": {
+      "type": "object",
+      "required": ["adjustSeconds", "presets"],
+      "additionalProperties": false,
+      "properties": {
+        "adjustSeconds": { "type": "number", "minimum": 0.1 },
+        "presets": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0.1 },
+          "minItems": 1
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "required": ["mode", "showNextCount", "fontScale"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["minimal", "practice", "review"] },
+        "showNextCount": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "fontScale": { "type": "number", "minimum": 0.6, "maximum": 2.2 }
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": ["buildsPath"],
+      "additionalProperties": false,
+      "properties": {
+        "buildsPath": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "hotkeyMap": {
+      "type": "object",
+      "required": ["left", "middle", "right", "pause", "reset", "next"],
+      "additionalProperties": false,
+      "properties": {
+        "left": { "type": "string", "minLength": 1 },
+        "middle": { "type": "string", "minLength": 1 },
+        "right": { "type": "string", "minLength": 1 },
+        "pause": { "type": "string", "minLength": 1 },
+        "reset": { "type": "string", "minLength": 1 },
+        "next": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
