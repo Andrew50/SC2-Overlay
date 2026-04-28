@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,12 +15,24 @@ let mainWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
 
 const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
+const electronMajor = Number.parseInt(process.versions.electron.split(".")[0] ?? "0", 10);
 
-// Wayland compositors often block or reserve bare global F-keys.
-// For Linux Wayland sessions, prefer running Electron on X11 backend.
+// Wayland handling for global shortcuts:
+// - Electron 35+ supports the GlobalShortcuts portal.
+// - Older Electron versions are more reliable under X11 fallback.
 if (isLinuxWayland) {
-  app.commandLine.appendSwitch("ozone-platform-hint", "x11");
-  console.log("Wayland detected; forcing Electron to X11 backend for global F-key hotkeys.");
+  if (electronMajor >= 35) {
+    app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
+    app.commandLine.appendSwitch("ozone-platform", "wayland");
+    console.log(
+      `Wayland detected with Electron ${process.versions.electron}; using GlobalShortcutsPortal backend.`
+    );
+  } else {
+    app.commandLine.appendSwitch("ozone-platform-hint", "x11");
+    console.log(
+      `Wayland detected with Electron ${process.versions.electron}; forcing X11 backend for global hotkeys.`
+    );
+  }
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -51,14 +63,54 @@ function applyWindowOverlayOptions(window: BrowserWindow, config: AppConfig): vo
   window.setOpacity(config.window.opacity);
 }
 
+function clampWindowAxis(axis: number, size: number, min: number, span: number): number {
+  const max = min + Math.max(0, span - size);
+  return Math.min(Math.max(axis, min), max);
+}
+
+function resolveWindowPosition(config: AppConfig): { x?: number; y?: number } {
+  if (typeof config.window.monitor !== "number") {
+    return { x: config.window.x, y: config.window.y };
+  }
+
+  const displays = screen
+    .getAllDisplays()
+    .sort((a, b) => (a.bounds.x === b.bounds.x ? a.bounds.y - b.bounds.y : a.bounds.x - b.bounds.x));
+  const requestedIndex = config.window.monitor - 1;
+  const requestedDisplay = displays[requestedIndex];
+  const targetDisplay = requestedDisplay ?? screen.getPrimaryDisplay();
+
+  if (!requestedDisplay) {
+    console.warn(
+      `Requested monitor ${config.window.monitor} not found; falling back to primary display.`
+    );
+  }
+
+  const { workArea } = targetDisplay;
+  const desiredX =
+    typeof config.window.x === "number"
+      ? workArea.x + config.window.x
+      : Math.round(workArea.x + (workArea.width - config.window.width) / 2);
+  const desiredY =
+    typeof config.window.y === "number"
+      ? workArea.y + config.window.y
+      : Math.round(workArea.y + (workArea.height - config.window.height) / 2);
+
+  return {
+    x: clampWindowAxis(desiredX, config.window.width, workArea.x, workArea.width),
+    y: clampWindowAxis(desiredY, config.window.height, workArea.y, workArea.height)
+  };
+}
+
 function createMainWindow(config: AppConfig): BrowserWindow {
+  const position = resolveWindowPosition(config);
   const browserWindow = new BrowserWindow({
     width: config.window.width,
     height: config.window.height,
     minWidth: config.window.minWidth,
     minHeight: config.window.minHeight,
-    x: config.window.x,
-    y: config.window.y,
+    x: position.x,
+    y: position.y,
     frame: config.window.frame,
     transparent: config.window.transparent,
     alwaysOnTop: config.window.alwaysOnTop,

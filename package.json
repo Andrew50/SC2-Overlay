@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "SC2 build overlay prototype using Electron + TypeScript + HTML/CSS",
+  "author": {
+    "name": "Andrew50",
+    "email": "andrew50@users.noreply.github.com"
+  },
   "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
@@ -12,17 +16,17 @@
     "typecheck": "tsc --noEmit",
     "validate:data": "tsx scripts/validate-data.ts",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder",
-    "dist:linux": "npm run build && electron-builder --linux",
-    "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never"
   },
   "dependencies": {
     "ajv": "^8.17.1"
   },
   "devDependencies": {
     "@types/node": "^24.9.1",
-    "electron": "^31.7.7",
+    "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
@@ -49,6 +53,7 @@
         "AppImage",
         "deb"
       ],
+      "maintainer": "Andrew50 <andrew50@users.noreply.github.com>",
       "category": "Game"
     },
     "mac": {

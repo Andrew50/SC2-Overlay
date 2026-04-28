@@ -25,6 +25,7 @@
         "height": { "type": "number", "minimum": 120 },
         "minWidth": { "type": "number", "minimum": 100 },
         "minHeight": { "type": "number", "minimum": 100 },
+        "monitor": { "type": "integer", "minimum": 1 },
         "x": { "type": "number" },
         "y": { "type": "number" },
         "opacity": { "type": "number", "minimum": 0.1, "maximum": 1 },

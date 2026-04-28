@@ -5,6 +5,7 @@
     "height": 320,
     "minWidth": 320,
     "minHeight": 220,
+    "monitor": 2,
     "x": 30,
     "y": 30,
     "opacity": 0.9,

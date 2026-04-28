@@ -18,6 +18,7 @@ export interface AppConfig {
     height: number;
     minWidth: number;
     minHeight: number;
+    monitor?: number;
     x?: number;
     y?: number;
     opacity: number;
