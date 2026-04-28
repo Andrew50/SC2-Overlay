@@ -14,6 +14,21 @@ const PRELOAD_JS = path.resolve(THIS_DIR, "preload.js");
 let mainWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
 
+const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
+
+// Wayland compositors often block or reserve bare global F-keys.
+// For Linux Wayland sessions, prefer running Electron on X11 backend.
+if (isLinuxWayland) {
+  app.commandLine.appendSwitch("ozone-platform-hint", "x11");
+  console.log("Wayland detected; forcing Electron to X11 backend for global F-key hotkeys.");
+}
+
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  console.log("Another instance is already running; exiting this instance.");
+  app.quit();
+}
+
 function resolvePreloadScript(): string {
   return existsSync(PRELOAD_MJS) ? PRELOAD_MJS : PRELOAD_JS;
 }
@@ -23,6 +38,7 @@ function resolveRendererIndex(): string {
 }
 
 function broadcastControlAction(action: ControlAction): void {
+  console.log(`Global shortcut callback fired: ${action}`);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("control-action", action);
   }
@@ -67,6 +83,7 @@ async function loadRenderer(window: BrowserWindow): Promise<void> {
 
 function registerGlobalHotkeys(config: AppConfig): void {
   if (!config.hotkeys.globalEnabled) {
+    console.log("Global hotkeys are disabled in config.hotkeys.globalEnabled.");
     return;
   }
 
@@ -85,7 +102,12 @@ function registerGlobalHotkeys(config: AppConfig): void {
     }
     const ok = globalShortcut.register(accelerator, () => broadcastControlAction(action));
     if (!ok) {
-      console.warn(`Failed to register global shortcut for ${action}: ${accelerator}`);
+      console.warn(
+        `Failed to register global shortcut for ${action}: ${accelerator}. ` +
+          "This often means the key is reserved by the OS or desktop environment."
+      );
+    } else {
+      console.log(`Registered global shortcut for ${action}: ${accelerator}`);
     }
   }
 }
@@ -100,6 +122,7 @@ function setupIpc(): void {
 }
 
 async function bootstrap(): Promise<void> {
+  process.env.SC2_OVERLAY_APP_ROOT = app.getAppPath();
   initialData = loadInitialData();
   mainWindow = createMainWindow(initialData.config);
   setupIpc();
@@ -108,6 +131,10 @@ async function bootstrap(): Promise<void> {
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) {
+    return;
+  }
+
   bootstrap().catch((error) => {
     console.error("Fatal bootstrap error:", error);
     app.quit();
@@ -121,6 +148,16 @@ app.whenReady().then(() => {
       });
     }
   });
+});
+
+app.on("second-instance", () => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.focus();
 });
 
 app.on("will-quit", () => {

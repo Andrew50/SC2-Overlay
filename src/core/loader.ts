@@ -19,7 +19,7 @@ import type {
 } from "./types";
 import { buildSchema, configSchema } from "./schemas";
 
-const ROOT_DIR = process.cwd();
+const ROOT_DIR = path.resolve(process.env.SC2_OVERLAY_APP_ROOT?.trim() || process.cwd());
 const ajv = new Ajv2020({ allErrors: true });
 const OPPONENT_RACE_ORDER: OpponentRace[] = ["zerg", "terran", "protoss"];
 

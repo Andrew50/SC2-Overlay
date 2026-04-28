@@ -43,6 +43,7 @@ body {
 .top-line span {
   color: #9ec2ff;
   font-size: 0.86rem;
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

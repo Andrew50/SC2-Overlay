@@ -1,0 +1,1049 @@
+{
+  "terran_standard_opening_to_proxy_check": {
+    "steps": [
+      {
+        "time": "0:18",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 14
+      },
+      {
+        "time": "0:40",
+        "action": "Barracks",
+        "exact": true,
+        "supply": 15
+      },
+      {
+        "time": "0:44",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 16
+      },
+      {
+        "time": "0:53",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 16
+      },
+      {
+        "time": "1:28",
+        "action": "Reaper",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:29",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:30",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:42",
+        "action": "Factory",
+        "exact": true,
+        "supply": 20
+      },
+      {
+        "time": "2:01",
+        "action": "Reaper",
+        "exact": true,
+        "supply": 21
+      },
+      {
+        "time": "2:19",
+        "action": "Command Center [natural]",
+        "exact": true,
+        "supply": 23
+      },
+      {
+        "time": "2:26",
+        "action": "Hellion",
+        "exact": true,
+        "supply": 24
+      },
+      {
+        "time": "2:33",
+        "action": "Starport",
+        "exact": true,
+        "supply": 26
+      },
+      {
+        "time": "2:35",
+        "action": "Barracks Reactor",
+        "exact": true,
+        "supply": 26
+      },
+      {
+        "time": "2:40",
+        "decision": {
+          "1": {
+            "label": "Barracks missing / proxy signs scouted [anti-proxy defense]",
+            "target": "terran_anti_proxy_reaper_defense"
+          },
+          "2": {
+            "label": "Standard expand / normal Reaper count scouted [continue marine-tank-raven]",
+            "target": "terran_standard_tank_raven_continuation"
+          },
+          "3": {
+            "label": "Very passive expand / no early pressure scouted [passive 3rd macro]",
+            "target": "terran_passive_3rd_macro"
+          }
+        }
+      }
+    ]
+  },
+  "terran_standard_tank_raven_continuation": {
+    "steps": [
+      {
+        "time": "2:47",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 27
+      },
+      {
+        "time": "2:48",
+        "action": "Widow Mine",
+        "exact": true,
+        "supply": 27
+      },
+      {
+        "time": "3:12",
+        "action": "Factory Tech Lab",
+        "exact": true,
+        "supply": 31
+      },
+      {
+        "time": "3:13",
+        "action": "Starport Tech Lab",
+        "exact": true,
+        "supply": 31
+      },
+      {
+        "time": "3:30",
+        "action": "Cyclone",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:31",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:40",
+        "action": "Raven",
+        "exact": true,
+        "supply": 39
+      },
+      {
+        "time": "4:02",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 46
+      },
+      {
+        "time": "4:04",
+        "action": "Siege Tank",
+        "exact": true,
+        "supply": 46
+      },
+      {
+        "time": "4:17",
+        "action": "Raven",
+        "exact": true,
+        "supply": 53
+      },
+      {
+        "time": "4:25",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 54
+      },
+      {
+        "time": "4:35",
+        "action": "Command Center [3rd]",
+        "exact": true,
+        "supply": 56
+      },
+      {
+        "time": "4:37",
+        "action": "Interference Matrix",
+        "exact": true,
+        "supply": 56
+      },
+      {
+        "time": "4:51",
+        "action": "Raven",
+        "exact": true,
+        "supply": 60
+      },
+      {
+        "time": "4:56",
+        "action": "Siege Tank",
+        "exact": true,
+        "supply": 61
+      },
+      {
+        "time": "5:28",
+        "action": "Siege Tank",
+        "exact": true,
+        "supply": 71
+      },
+      {
+        "time": "5:29",
+        "action": "2x Barracks",
+        "exact": true,
+        "supply": 74
+      },
+      {
+        "time": "5:30",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 74
+      },
+      {
+        "time": "5:44",
+        "action": "2x Viking",
+        "exact": true,
+        "supply": 76
+      },
+      {
+        "time": "5:47",
+        "action": "Stimpack",
+        "exact": true,
+        "supply": 76
+      },
+      {
+        "time": "6:12",
+        "action": "2x Engineering Bay",
+        "exact": true,
+        "supply": 89
+      },
+      {
+        "time": "6:23",
+        "action": "2x Barracks Reactor",
+        "exact": true,
+        "supply": 93
+      },
+      {
+        "time": "7:17",
+        "action": "2x Refinery",
+        "exact": true,
+        "supply": 117
+      },
+      {
+        "time": "7:25",
+        "action": "Sensor Tower",
+        "exact": true,
+        "supply": 118
+      },
+      {
+        "time": "7:31",
+        "action": "Combat Shield",
+        "exact": true,
+        "supply": 122
+      },
+      {
+        "time": "7:43",
+        "action": "2x Medivac",
+        "exact": true,
+        "supply": 125
+      },
+      {
+        "time": "8:28",
+        "action": "Command Center [4th]",
+        "exact": true,
+        "supply": 155
+      },
+      {
+        "time": "8:35",
+        "decision": {
+          "1": {
+            "label": "Medivac path / bio drop pressure scouted [anti-drop defense]",
+            "target": "terran_drop_pressure_response"
+          },
+          "2": {
+            "label": "Fast Raven/Tank pressure scouted [safe raven-tank response]",
+            "target": "terran_fast_raven_tank_response"
+          },
+          "3": {
+            "label": "Passive 3rd / turtle scouted [positional macro]",
+            "target": "terran_passive_3rd_macro"
+          }
+        }
+      }
+    ]
+  },
+  "terran_anti_proxy_reaper_defense": {
+    "steps": [
+      {
+        "time": "1:45",
+        "action": "[confirm missing Barracks or proxy Reaper timing]",
+        "exact": false
+      },
+      {
+        "time": "2",
+        "action": "Supply Depot [closed ramp]",
+        "exact": false
+      },
+      {
+        "time": "2:05",
+        "action": "[pull SCVs for repair only as needed]",
+        "exact": false
+      },
+      {
+        "time": "2:15",
+        "action": "Reaper [home defense]",
+        "exact": false
+      },
+      {
+        "time": "2:30",
+        "action": "Hellion [home defense]",
+        "exact": false
+      },
+      {
+        "time": "3",
+        "action": "Cyclone [home defense]",
+        "exact": false
+      },
+      {
+        "time": "3:30",
+        "action": "Bunker [ramp if pressure continues]",
+        "exact": false
+      },
+      {
+        "time": "4",
+        "action": "Siege Tank [main high ground]",
+        "exact": false
+      },
+      {
+        "time": "5",
+        "decision": {
+          "1": {
+            "label": "Proxy held / opponent natural delayed [safe counterattack]",
+            "target": "terran_standard_tank_raven_continuation"
+          },
+          "2": {
+            "label": "Proxy continues / multiple Reapers active [extended anti-proxy defense]",
+            "target": "terran_anti_proxy_continue"
+          }
+        }
+      }
+    ]
+  },
+  "terran_anti_proxy_continue": {
+    "steps": [
+      {
+        "time": "5",
+        "action": "[do not chase Reapers away from wall]",
+        "exact": false
+      },
+      {
+        "time": "5:30",
+        "action": "Siege Tank [cover mineral line]",
+        "exact": false
+      },
+      {
+        "time": "6",
+        "action": "[scan for proxy production]",
+        "exact": false
+      },
+      {
+        "time": "6:30",
+        "action": "[counterattack only after production is cleaned]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_drop_pressure_response": {
+    "steps": [
+      {
+        "time": "6",
+        "action": "Sensor Tower [between main and 3rd]",
+        "exact": false
+      },
+      {
+        "time": "6:30",
+        "action": "Missile Turret [main mineral line]",
+        "exact": false
+      },
+      {
+        "time": "6:35",
+        "action": "Missile Turret [natural mineral line]",
+        "exact": false
+      },
+      {
+        "time": "7",
+        "action": "Marine group [main drop path]",
+        "exact": false
+      },
+      {
+        "time": "7:15",
+        "action": "Siege Tank [cover production]",
+        "exact": false
+      },
+      {
+        "time": "8",
+        "action": "[keep scan energy for drop paths]",
+        "exact": false
+      },
+      {
+        "time": "9",
+        "decision": {
+          "1": {
+            "label": "Drop pressure contained / opponent behind on Tank line [positional push]",
+            "target": "terran_air_control_transition"
+          },
+          "2": {
+            "label": "Drop pressure continues / doom drop threat [home defense posture]",
+            "target": "terran_drop_pressure_continue"
+          }
+        }
+      }
+    ]
+  },
+  "terran_drop_pressure_continue": {
+    "steps": [
+      {
+        "time": "9",
+        "action": "Sensor Tower [main edge]",
+        "exact": false
+      },
+      {
+        "time": "9:30",
+        "action": "[leave Marines in main and natural]",
+        "exact": false
+      },
+      {
+        "time": "10",
+        "action": "[do not move all Tanks across map]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_fast_raven_tank_response": {
+    "steps": [
+      {
+        "time": "5",
+        "action": "[check Raven and Tank count before moving]",
+        "exact": false
+      },
+      {
+        "time": "5:30",
+        "action": "Siege Tank [defensive high ground]",
+        "exact": false
+      },
+      {
+        "time": "6",
+        "action": "Viking [air vision]",
+        "exact": false
+      },
+      {
+        "time": "6:30",
+        "action": "[keep Ravens protected behind Marines]",
+        "exact": false
+      },
+      {
+        "time": "7",
+        "action": "[do not walk unsieged into fog]",
+        "exact": false
+      },
+      {
+        "time": "8",
+        "decision": {
+          "1": {
+            "label": "Even Raven/Tank counts / safe 3rd possible [passive positional macro]",
+            "target": "terran_passive_3rd_macro"
+          },
+          "2": {
+            "label": "Ahead in Raven/Tank / opponent exposed [air-control transition]",
+            "target": "terran_air_control_transition"
+          }
+        }
+      }
+    ]
+  },
+  "terran_passive_3rd_macro": {
+    "steps": [
+      {
+        "time": "6",
+        "action": "Command Center [3rd if safe]",
+        "exact": false
+      },
+      {
+        "time": "6:30",
+        "action": "Sensor Tower [3rd]",
+        "exact": false
+      },
+      {
+        "time": "7",
+        "action": "[establish Tank-Raven defensive line]",
+        "exact": false
+      },
+      {
+        "time": "8",
+        "action": "[add Viking production if air vision matters]",
+        "exact": false
+      },
+      {
+        "time": "8:30",
+        "action": "Factory [extra Tank production if low Tank count]",
+        "exact": false
+      },
+      {
+        "time": "9",
+        "action": "Starport [extra Viking production if air war matters]",
+        "exact": false
+      },
+      {
+        "time": "10",
+        "action": "Command Center [4th behind towers]",
+        "exact": false
+      },
+      {
+        "time": "10:30",
+        "decision": {
+          "1": {
+            "label": "Tank lines established / air control decides movement [Tank/Viking transition]",
+            "target": "terran_air_control_transition"
+          },
+          "2": {
+            "label": "Opponent stays passive / low drop pressure [expand and contain]",
+            "target": "terran_passive_expand_contain"
+          }
+        }
+      }
+    ]
+  },
+  "terran_passive_expand_contain": {
+    "steps": [
+      {
+        "time": "10:30",
+        "action": "[deny bases with Tank leapfrog]",
+        "exact": false
+      },
+      {
+        "time": "11",
+        "action": "[keep one Tank line at home]",
+        "exact": false
+      },
+      {
+        "time": "12",
+        "action": "[secure 5th before diving siege lines]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_air_control_transition": {
+    "steps": [
+      {
+        "time": "8",
+        "action": "[compare Viking and Raven counts]",
+        "exact": false
+      },
+      {
+        "time": "8:30",
+        "action": "2x Viking",
+        "exact": false
+      },
+      {
+        "time": "9",
+        "action": "[scan before each Tank move]",
+        "exact": false
+      },
+      {
+        "time": "9:30",
+        "action": "Liberator [zone Tank line]",
+        "exact": false
+      },
+      {
+        "time": "10",
+        "action": "[leapfrog Tanks with Viking vision]",
+        "exact": false
+      },
+      {
+        "time": "11",
+        "action": "[do not lose Vikings over Marines]",
+        "exact": false
+      },
+      {
+        "time": "12",
+        "action": "[deny expansions instead of diving siege]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_raven_timing": {
+    "steps": [
+      {
+        "time": "0:17",
+        "action": "Supply Depot [ramp]",
+        "exact": true,
+        "supply": 14
+      },
+      {
+        "time": "0:40",
+        "action": "Barracks",
+        "exact": true,
+        "supply": 16
+      },
+      {
+        "time": "0:40",
+        "action": "[3 Reapers then Reactor]",
+        "exact": true,
+        "supply": 16
+      },
+      {
+        "time": "0:42",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 16
+      },
+      {
+        "time": "0:52",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 17
+      },
+      {
+        "time": "1:27",
+        "action": "3x Reaper",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:27",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:27",
+        "action": "[scout for proxies]",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "1:30",
+        "action": "Supply Depot [finish wall]",
+        "exact": true,
+        "supply": 20
+      },
+      {
+        "time": "1:40",
+        "action": "Factory",
+        "exact": true,
+        "supply": 20
+      },
+      {
+        "time": "2:16",
+        "action": "Command Center [natural]",
+        "exact": true,
+        "supply": 23
+      },
+      {
+        "time": "2:25",
+        "action": "2x Hellion",
+        "exact": true,
+        "supply": 24
+      },
+      {
+        "time": "2:40",
+        "action": "Supply Depot [drop-spot vision]",
+        "exact": true,
+        "supply": 28
+      },
+      {
+        "time": "2:56",
+        "action": "Starport",
+        "exact": true,
+        "supply": 31
+      },
+      {
+        "time": "3:05",
+        "action": "Barracks Reactor",
+        "exact": true,
+        "supply": 32
+      },
+      {
+        "time": "3:10",
+        "action": "Factory Tech Lab",
+        "exact": true,
+        "supply": 32
+      },
+      {
+        "time": "3:30",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:35",
+        "action": "Cyclone",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:35",
+        "action": "Starport Tech Lab",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:36",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 37
+      },
+      {
+        "time": "3:55",
+        "action": "3x Raven",
+        "exact": true,
+        "supply": 41
+      },
+      {
+        "time": "3:55",
+        "action": "Interference Matrix",
+        "exact": true,
+        "supply": 41
+      },
+      {
+        "time": "4:12",
+        "action": "Siege Tank",
+        "exact": true,
+        "supply": 48
+      },
+      {
+        "time": "4:18",
+        "action": "4x Supply Depot",
+        "exact": true,
+        "supply": 52
+      },
+      {
+        "time": "5:16",
+        "action": "Command Center [3rd]",
+        "exact": true,
+        "supply": 74
+      },
+      {
+        "time": "5:44",
+        "action": "2x Barracks",
+        "exact": true,
+        "supply": 83
+      },
+      {
+        "time": "5:53",
+        "action": "Starport Reactor",
+        "exact": true,
+        "supply": 87
+      },
+      {
+        "time": "6:01",
+        "action": "2x Engineering Bay",
+        "exact": true,
+        "supply": 88
+      },
+      {
+        "time": "6:06",
+        "action": "Stimpack",
+        "exact": true,
+        "supply": 89
+      },
+      {
+        "time": "6:16",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 91
+      },
+      {
+        "time": "6:28",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 92
+      },
+      {
+        "time": "6:29",
+        "action": "+1 Infantry Weapons",
+        "exact": true,
+        "supply": 92
+      },
+      {
+        "time": "6:29",
+        "action": "+1 Infantry Armor",
+        "exact": true,
+        "supply": 92
+      },
+      {
+        "time": "6:36",
+        "action": "Starport Reactor",
+        "exact": true,
+        "supply": 93
+      },
+      {
+        "time": "6:51",
+        "action": "2x Barracks",
+        "exact": true,
+        "supply": 104
+      },
+      {
+        "time": "6:59",
+        "action": "Sensor Tower [3rd]",
+        "exact": true,
+        "supply": 105
+      },
+      {
+        "time": "7:40",
+        "action": "2x Medivac",
+        "exact": true,
+        "supply": 122
+      },
+      {
+        "time": "7:42",
+        "action": "Armory",
+        "exact": true,
+        "supply": 126
+      },
+      {
+        "time": "8",
+        "decision": {
+          "1": {
+            "label": "Opponent exposed / Raven energy ready [Raven-Tank timing]",
+            "target": "terran_raven_tank_timing_attack"
+          },
+          "2": {
+            "label": "Opponent turtled / attack path blocked [passive 3rd macro]",
+            "target": "terran_passive_3rd_macro"
+          },
+          "3": {
+            "label": "Air control becoming decisive [Tank/Viking transition]",
+            "target": "terran_air_control_transition"
+          }
+        }
+      }
+    ]
+  },
+  "terran_raven_tank_timing_attack": {
+    "steps": [
+      {
+        "time": "8",
+        "action": "[move with Tanks only after Raven energy is ready]",
+        "exact": false
+      },
+      {
+        "time": "8:30",
+        "action": "[disable enemy Tanks before siege break]",
+        "exact": false
+      },
+      {
+        "time": "9",
+        "action": "[siege outside enemy 3rd]",
+        "exact": false
+      },
+      {
+        "time": "9:30",
+        "action": "[pull back if air control is lost]",
+        "exact": false
+      },
+      {
+        "time": "10",
+        "action": "[transition to positional macro if timing fails]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_proxy_selector": {
+    "steps": [
+      {
+        "time": "0",
+        "action": "[choose before game or use when proxy signs appear]",
+        "exact": false
+      },
+      {
+        "time": "0:01",
+        "decision": {
+          "1": {
+            "label": "Want playable aggressive TvT pocket [proxy 2 Rax Reaper]",
+            "target": "terran_proxy_2rax_reaper"
+          },
+          "2": {
+            "label": "Opponent proxy signs scouted [anti-proxy defense]",
+            "target": "terran_anti_proxy_reaper_defense"
+          }
+        }
+      }
+    ]
+  },
+  "terran_proxy_2rax_reaper": {
+    "steps": [
+      {
+        "time": "0:15",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 13
+      },
+      {
+        "time": "0:35",
+        "action": "Barracks [proxy]",
+        "exact": true,
+        "supply": 14
+      },
+      {
+        "time": "0:41",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 14
+      },
+      {
+        "time": "0:55",
+        "action": "Barracks [proxy]",
+        "exact": true,
+        "supply": 14
+      },
+      {
+        "time": "1:23",
+        "action": "Reaper",
+        "exact": true,
+        "supply": 17
+      },
+      {
+        "time": "1:26",
+        "action": "Orbital Command",
+        "exact": true,
+        "supply": 17
+      },
+      {
+        "time": "1:34",
+        "action": "Refinery",
+        "exact": true,
+        "supply": 17
+      },
+      {
+        "time": "1:43",
+        "action": "Reaper",
+        "exact": true,
+        "supply": 17
+      },
+      {
+        "time": "2:00",
+        "action": "Reaper",
+        "exact": true,
+        "supply": 19
+      },
+      {
+        "time": "2:07",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 21
+      },
+      {
+        "time": "2:26",
+        "action": "Factory",
+        "exact": true,
+        "supply": 22
+      },
+      {
+        "time": "2:51",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 26
+      },
+      {
+        "time": "3:13",
+        "action": "Hellion",
+        "exact": true,
+        "supply": 31
+      },
+      {
+        "time": "3:40",
+        "action": "Command Center [natural]",
+        "exact": true,
+        "supply": 34
+      },
+      {
+        "time": "3:54",
+        "action": "Starport",
+        "exact": true,
+        "supply": 36
+      },
+      {
+        "time": "4:04",
+        "action": "Supply Depot",
+        "exact": true,
+        "supply": 36
+      },
+      {
+        "time": "4:15",
+        "decision": {
+          "1": {
+            "label": "Reaper damage dealt / opponent natural delayed [transition behind pressure]",
+            "target": "terran_proxy_transition"
+          },
+          "2": {
+            "label": "Proxy held cleanly / opponent stabilized [expand and recover]",
+            "target": "terran_proxy_recover_macro"
+          }
+        }
+      }
+    ]
+  },
+  "terran_proxy_transition": {
+    "steps": [
+      {
+        "time": "4:15",
+        "action": "[keep Reapers alive for map control]",
+        "exact": false
+      },
+      {
+        "time": "4:30",
+        "action": "[deny natural or force repair]",
+        "exact": false
+      },
+      {
+        "time": "5",
+        "action": "Command Center [natural]",
+        "exact": false
+      },
+      {
+        "time": "5:30",
+        "action": "[transition to Marine/Tank/Raven]",
+        "exact": false
+      }
+    ]
+  },
+  "terran_proxy_recover_macro": {
+    "steps": [
+      {
+        "time": "4:15",
+        "action": "Command Center [natural]",
+        "exact": false
+      },
+      {
+        "time": "4:30",
+        "action": "[stop throwing Reapers into wall]",
+        "exact": false
+      },
+      {
+        "time": "5",
+        "action": "Factory Tech Lab",
+        "exact": false
+      },
+      {
+        "time": "5:30",
+        "action": "Siege Tank [defense]",
+        "exact": false
+      },
+      {
+        "time": "6",
+        "action": "[play from behind into Tank/Raven safety]",
+        "exact": false
+      }
+    ]
+  }
+}
