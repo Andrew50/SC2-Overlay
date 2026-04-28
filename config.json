@@ -1,0 +1,45 @@
+{
+  "window": {
+    "width": 420,
+    "height": 320,
+    "minWidth": 320,
+    "minHeight": 220,
+    "x": 30,
+    "y": 30,
+    "opacity": 0.9,
+    "alwaysOnTop": true,
+    "transparent": true,
+    "frame": false,
+    "clickThrough": false
+  },
+  "hotkeys": {
+    "globalEnabled": true,
+    "global": {
+      "left": "Alt+Left",
+      "right": "Alt+Right",
+      "pause": "Alt+Down",
+      "reset": "Alt+Up",
+      "next": "Alt+N"
+    },
+    "focused": {
+      "left": "ArrowLeft",
+      "right": "ArrowRight",
+      "pause": "Space",
+      "reset": "KeyR",
+      "next": "KeyN"
+    }
+  },
+  "timer": {
+    "adjustSeconds": 2.5,
+    "presets": [1, 2.5, 5, 10]
+  },
+  "ui": {
+    "mode": "minimal",
+    "showNextCount": 2,
+    "fontScale": 1
+  },
+  "data": {
+    "indexPath": "builds/index.json",
+    "defaultRootBuildId": "example.root"
+  }
+}
