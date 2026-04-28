@@ -148,6 +148,16 @@ function registerGlobalHotkeys(config: AppConfig): void {
     next: config.hotkeys.global.next
   };
 
+  const isGnomeWayland =
+    isLinuxWayland && (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase().includes("gnome");
+  const hasBareFunctionKeys = Object.values(hotkeyMap).some((accelerator) => /^f\d{1,2}$/i.test(accelerator));
+  if (isGnomeWayland && hasBareFunctionKeys) {
+    console.warn(
+      "GNOME Wayland typically blocks bare F-key global shortcuts via portal APIs. " +
+        "Use modified accelerators (e.g. Ctrl+Alt+F1) or run an Xorg session for global F1-F12."
+    );
+  }
+
   for (const [action, accelerator] of Object.entries(hotkeyMap) as Array<[ControlAction, string]>) {
     if (!accelerator) {
       continue;
