@@ -4,6 +4,8 @@ declare global {
   interface Window {
     overlayApi: {
       getInitialData: () => Promise<InitialAppData>;
+      reloadData: () => Promise<InitialAppData>;
+      openBuildsDirectory: () => Promise<string>;
       onControlAction: (callback: (action: ControlAction) => void) => () => void;
     };
   }

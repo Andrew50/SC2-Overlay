@@ -40,6 +40,7 @@ export interface AppConfig {
     mode: DisplayMode;
     showNextCount: number;
     fontScale: number;
+    scale: number;
   };
   data: {
     buildsPath: string;

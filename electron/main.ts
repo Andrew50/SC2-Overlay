@@ -1,5 +1,5 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
-import { existsSync } from "node:fs";
+import { app, BrowserWindow, globalShortcut, ipcMain, screen, shell } from "electron";
+import { cpSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadInitialData } from "../src/core/loader";
@@ -13,6 +13,7 @@ const PRELOAD_JS = path.resolve(THIS_DIR, "preload.js");
 
 let mainWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
+let runtimeDataRoot = "";
 
 const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
 const electronMajor = Number.parseInt(process.versions.electron.split(".")[0] ?? "0", 10);
@@ -134,6 +135,8 @@ async function loadRenderer(window: BrowserWindow): Promise<void> {
 }
 
 function registerGlobalHotkeys(config: AppConfig): void {
+  globalShortcut.unregisterAll();
+
   if (!config.hotkeys.globalEnabled) {
     console.log("Global hotkeys are disabled in config.hotkeys.globalEnabled.");
     return;
@@ -174,6 +177,57 @@ function registerGlobalHotkeys(config: AppConfig): void {
   }
 }
 
+function resolvePackagedDataRoot(): string {
+  return path.join(app.getPath("userData"), "data");
+}
+
+function copyPathIfMissing(sourcePath: string, targetPath: string): void {
+  if (existsSync(targetPath) || !existsSync(sourcePath)) {
+    return;
+  }
+  cpSync(sourcePath, targetPath, { recursive: true });
+}
+
+function prepareRuntimeDataRoot(): string {
+  const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
+  if (envRoot) {
+    return path.resolve(envRoot);
+  }
+
+  const bundledRoot = app.getAppPath();
+  if (!app.isPackaged) {
+    return bundledRoot;
+  }
+
+  const userDataRoot = resolvePackagedDataRoot();
+  mkdirSync(userDataRoot, { recursive: true });
+  copyPathIfMissing(path.join(bundledRoot, "config.json"), path.join(userDataRoot, "config.json"));
+  copyPathIfMissing(path.join(bundledRoot, "builds"), path.join(userDataRoot, "builds"));
+  console.log(`Using runtime data root: ${userDataRoot}`);
+  return userDataRoot;
+}
+
+function applyDynamicConfig(config: AppConfig): void {
+  registerGlobalHotkeys(config);
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  applyWindowOverlayOptions(mainWindow, config);
+}
+
+function reloadAppData(): InitialAppData {
+  initialData = loadInitialData();
+  applyDynamicConfig(initialData.config);
+  return initialData;
+}
+
+function resolveBuildsDirectoryPath(): string {
+  if (!initialData) {
+    throw new Error("App data is not loaded");
+  }
+  return path.resolve(runtimeDataRoot, initialData.config.data.buildsPath);
+}
+
 function setupIpc(): void {
   ipcMain.handle("app:get-initial-data", () => {
     if (!initialData) {
@@ -181,14 +235,23 @@ function setupIpc(): void {
     }
     return initialData;
   });
+  ipcMain.handle("app:reload-data", () => reloadAppData());
+  ipcMain.handle("app:open-builds-directory", async () => {
+    const buildsDirectoryPath = resolveBuildsDirectoryPath();
+    const openError = await shell.openPath(buildsDirectoryPath);
+    if (openError) {
+      throw new Error(openError);
+    }
+    return buildsDirectoryPath;
+  });
 }
 
 async function bootstrap(): Promise<void> {
-  process.env.SC2_OVERLAY_APP_ROOT = app.getAppPath();
-  initialData = loadInitialData();
+  runtimeDataRoot = prepareRuntimeDataRoot();
+  process.env.SC2_OVERLAY_APP_ROOT = runtimeDataRoot;
+  initialData = reloadAppData();
   mainWindow = createMainWindow(initialData.config);
   setupIpc();
-  registerGlobalHotkeys(initialData.config);
   await loadRenderer(mainWindow);
 }
 

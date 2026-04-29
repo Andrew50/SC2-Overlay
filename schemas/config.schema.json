@@ -60,12 +60,13 @@
     },
     "ui": {
       "type": "object",
-      "required": ["mode", "showNextCount", "fontScale"],
+      "required": ["mode", "showNextCount", "fontScale", "scale"],
       "additionalProperties": false,
       "properties": {
         "mode": { "type": "string", "enum": ["minimal", "practice", "review"] },
         "showNextCount": { "type": "integer", "minimum": 0, "maximum": 8 },
-        "fontScale": { "type": "number", "minimum": 0.6, "maximum": 2.2 }
+        "fontScale": { "type": "number", "minimum": 0.1, "maximum": 2.2 },
+        "scale": { "type": "number", "minimum": 0.1, "maximum": 2.2 }
       }
     },
     "data": {

@@ -11,6 +11,8 @@ Build files are auto-discovered from the directory configured in `config.json` (
 - Across all build files, the root branch names `zerg`, `terran`, and `protoss` must each be defined exactly once.
 - Only one definition per race root is allowed globally.
 - Every race root is required; missing any of `zerg`, `terran`, or `protoss` is invalid.
+- Build flow diverges immediately by opponent race at these roots.
+- The race choice is represented directly by branch naming: `zerg`, `terran`, and `protoss`.
 - Everything else branches from those race roots (locally or cross-file).
 
 ## 2) Compact Format (Recommended)
@@ -57,6 +59,7 @@ Step rules:
 
 - The branches named `zerg`, `terran`, and `protoss` are reserved race roots.
 - Each must exist once globally across all discovered files.
+- These three names are the explicit race-selection choices and are where per-race builds split immediately.
 - Non-root build files may omit race branches and just provide reusable branch modules.
 
 ### Cross-file branch references

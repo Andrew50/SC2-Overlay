@@ -34,6 +34,20 @@ body {
   padding: 2px 2px 4px;
 }
 
+.top-line-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.setup-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .top-line strong {
   font-size: 1.2rem;
   letter-spacing: 0.03em;
@@ -48,6 +62,40 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.control-button {
+  border: 1px solid rgba(143, 181, 255, 0.8);
+  background: rgba(39, 96, 255, 0.25);
+  color: #f7fbff;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.control-button:hover {
+  background: rgba(39, 96, 255, 0.42);
+}
+
+.control-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.reload-status {
+  margin: -2px 2px 0;
+  min-height: 1em;
+  font-size: 0.72rem;
+  color: #9ec2ff;
+}
+
+.reload-status.is-error {
+  color: #ffb6b6;
+}
+
+.is-hidden {
+  display: none !important;
 }
 
 .action-queue {

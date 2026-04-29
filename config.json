@@ -6,8 +6,8 @@
     "minWidth": 320,
     "minHeight": 220,
     "monitor": 2,
-    "x": 30,
-    "y": 30,
+    "x": 10,
+    "y": 10,
     "opacity": 0.9,
     "alwaysOnTop": true,
     "transparent": true,
@@ -40,7 +40,8 @@
   "ui": {
     "mode": "minimal",
     "showNextCount": 2,
-    "fontScale": 1
+    "fontScale": 0.9,
+    "scale": 0.9
   },
   "data": {
     "buildsPath": "builds"
