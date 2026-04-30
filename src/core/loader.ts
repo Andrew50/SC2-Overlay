@@ -13,6 +13,7 @@ import type {
   CompactBuildStep,
   DecisionBranch,
   DecisionNodeEntry,
+  PlayerRace,
   OpponentRace,
   OpponentRaceOption,
   ResolvedBuildGraph
@@ -21,7 +22,7 @@ import { buildSchema, configSchema } from "./schemas";
 
 const ROOT_DIR = path.resolve(process.env.SC2_OVERLAY_APP_ROOT?.trim() || process.cwd());
 const ajv = new Ajv2020({ allErrors: true });
-const OPPONENT_RACE_ORDER: OpponentRace[] = ["zerg", "terran", "protoss"];
+const RACE_ORDER: PlayerRace[] = ["zerg", "terran", "protoss"];
 
 const validateConfigFn = ajv.compile<AppConfig>(configSchema as AnySchema);
 const validateBuildFn = ajv.compile<CompactBuildFile>(buildSchema as AnySchema);
@@ -34,7 +35,13 @@ interface BuildSource {
 
 interface RaceRootDefinition {
   buildId: string;
-  branchId: OpponentRace;
+  branchId: string;
+  playerRace: PlayerRace;
+  opponentRace: OpponentRace;
+}
+
+function matchupBranchId(playerRace: PlayerRace, opponentRace: OpponentRace): string {
+  return `${playerRace}_${opponentRace}`;
 }
 
 function readJson<T>(relativePath: string): T {
@@ -137,28 +144,35 @@ function loadBuildSources(buildsPathFromConfig: string): Map<string, BuildSource
   return sources;
 }
 
-function discoverRaceRoots(sources: Map<string, BuildSource>): Map<OpponentRace, RaceRootDefinition> {
-  const roots = new Map<OpponentRace, RaceRootDefinition>();
+function discoverRaceRoots(sources: Map<string, BuildSource>): Map<string, RaceRootDefinition> {
+  const roots = new Map<string, RaceRootDefinition>();
 
   for (const source of sources.values()) {
-    for (const race of OPPONENT_RACE_ORDER) {
-      if (!Object.prototype.hasOwnProperty.call(source.build, race)) {
-        continue;
+    for (const playerRace of RACE_ORDER) {
+      for (const opponentRace of RACE_ORDER) {
+        const branchId = matchupBranchId(playerRace, opponentRace);
+        if (!Object.prototype.hasOwnProperty.call(source.build, branchId)) {
+          continue;
+        }
+
+        const existing = roots.get(branchId);
+        if (existing) {
+          throw new Error(
+            `Matchup root "${branchId}" is defined multiple times (${existing.buildId} and ${source.id}). ` +
+              "Only one root branch per matchup is allowed."
+          );
+        }
+        roots.set(branchId, { buildId: source.id, branchId, playerRace, opponentRace });
       }
-      const existing = roots.get(race);
-      if (existing) {
-        throw new Error(
-          `Race root "${race}" is defined multiple times (${existing.buildId} and ${source.id}). ` +
-            "Only one root branch per race is allowed."
-        );
-      }
-      roots.set(race, { buildId: source.id, branchId: race });
     }
   }
 
-  for (const race of OPPONENT_RACE_ORDER) {
-    if (!roots.has(race)) {
-      throw new Error(`Missing required race root branch "${race}" across all build files.`);
+  for (const playerRace of RACE_ORDER) {
+    for (const opponentRace of RACE_ORDER) {
+      const branchId = matchupBranchId(playerRace, opponentRace);
+      if (!roots.has(branchId)) {
+        throw new Error(`Missing required matchup root branch "${branchId}" across all build files.`);
+      }
     }
   }
 
@@ -237,9 +251,25 @@ function normalizeCompactBuild(
   };
 
   for (const [branchName, branchEntry] of Object.entries(compactBuild)) {
+    const directTarget = typeof branchEntry.target === "string" ? branchEntry.target.trim() : "";
+    if (directTarget.length > 0) {
+      if (nodes[branchName]) {
+        throw new Error(`Compact branch id collision in ${buildId}: ${branchName}`);
+      }
+      nodes[branchName] = {
+        type: "build",
+        title: toDisplayName(branchName),
+        steps: [],
+        next: resolveTarget(directTarget)
+      } satisfies BuildNodeEntry;
+      continue;
+    }
+
     const steps = branchEntry.steps;
     if (!Array.isArray(steps) || steps.length === 0) {
-      throw new Error(`Compact branch "${branchName}" in ${buildId} must contain at least one step`);
+      throw new Error(
+        `Compact branch "${branchName}" in ${buildId} must contain at least one step or a branch-level target`
+      );
     }
 
     const buildSteps: BuildStep[] = [];
@@ -477,20 +507,24 @@ export function loadOpponentRaceOptions(config: AppConfig): OpponentRaceOption[]
   const sources = loadBuildSources(config.data.buildsPath);
   const raceRoots = discoverRaceRoots(sources);
 
-  return OPPONENT_RACE_ORDER.map((race) => {
-    const root = raceRoots.get(race);
-    if (!root) {
-      throw new Error(`Missing required race root "${race}".`);
-    }
-    const graph = resolveBuildById(root.buildId, sources, race);
-    graph.rootNodeId = root.branchId;
-    return {
-      race,
-      buildId: root.buildId,
-      label: toTitleCase(race),
-      graph
-    };
-  });
+  return RACE_ORDER.flatMap((playerRace) =>
+    RACE_ORDER.map((opponentRace) => {
+      const branchId = matchupBranchId(playerRace, opponentRace);
+      const root = raceRoots.get(branchId);
+      if (!root) {
+        throw new Error(`Missing required matchup root "${branchId}".`);
+      }
+      const graph = resolveBuildById(root.buildId, sources, opponentRace);
+      graph.rootNodeId = root.branchId;
+      return {
+        playerRace,
+        race: opponentRace,
+        buildId: root.buildId,
+        label: toTitleCase(opponentRace),
+        graph
+      } satisfies OpponentRaceOption;
+    })
+  );
 }
 
 export function loadInitialData() {

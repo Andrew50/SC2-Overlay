@@ -2,10 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sc2-overlay.local/schemas/config.schema.json",
   "type": "object",
-  "required": ["playerRace", "window", "hotkeys", "timer", "ui", "data"],
+  "required": ["window", "hotkeys", "timer", "ui", "data"],
   "additionalProperties": false,
   "properties": {
-    "playerRace": { "type": "string", "enum": ["terran", "zerg", "protoss"] },
     "window": {
       "type": "object",
       "required": [
@@ -81,7 +80,7 @@
   "$defs": {
     "hotkeyMap": {
       "type": "object",
-      "required": ["left", "middle", "right", "pause", "reset", "next"],
+      "required": ["left", "middle", "right", "pause", "reset", "next", "toggleVisibility"],
       "additionalProperties": false,
       "properties": {
         "left": { "type": "string", "minLength": 1 },
@@ -89,7 +88,8 @@
         "right": { "type": "string", "minLength": 1 },
         "pause": { "type": "string", "minLength": 1 },
         "reset": { "type": "string", "minLength": 1 },
-        "next": { "type": "string", "minLength": 1 }
+        "next": { "type": "string", "minLength": 1 },
+        "toggleVisibility": { "type": "string", "minLength": 1 }
       }
     }
   }

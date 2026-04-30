@@ -8,22 +8,29 @@ Build files are auto-discovered from the directory configured in `config.json` (
 
 - There is no `index.json`.
 - Build IDs are auto-derived from file paths under `buildsPath` (relative path without `.json`, with `/` converted to `.`).
-- Across all build files, the root branch names `zerg`, `terran`, and `protoss` must each be defined exactly once.
-- Only one definition per race root is allowed globally.
-- Every race root is required; missing any of `zerg`, `terran`, or `protoss` is invalid.
-- Build flow diverges immediately by opponent race at these roots.
-- The race choice is represented directly by branch naming: `zerg`, `terran`, and `protoss`.
-- Everything else branches from those race roots (locally or cross-file).
+- Across all build files, matchup root branch names must be present in `<player race>_<opponent race>` form.
+- Required matchup roots are: `zerg_zerg`, `zerg_terran`, `zerg_protoss`, `terran_zerg`, `terran_terran`, `terran_protoss`, `protoss_zerg`, `protoss_terran`, `protoss_protoss`.
+- Only one definition per matchup root is allowed globally.
+- All nine matchup roots are required.
+- Build flow diverges first by player race, then by opponent race.
+- The player-race and opponent-race selections are auto-included by the app and must not be authored as in-build `decision` steps.
+- Everything else branches from those matchup roots (locally or cross-file).
 
 ## 2) Compact Format (Recommended)
 
 Top-level keys are **branch names**.  
-Each branch contains `steps`.
+Each branch is either:
+
+- a normal branch with `steps`, or
+- a branch alias with a branch-level `target`.
 
 ### Branch shape
 
 ```json
 {
+  "branch_alias": {
+    "target": "shared_opening_branch"
+  },
   "branch_name": {
     "steps": [
       {
@@ -46,6 +53,13 @@ Each branch contains `steps`.
 }
 ```
 
+Branch-level `target` rules:
+
+- `target` at the branch root creates an immediate jump to another branch without a decision prompt.
+- Use this for matchup entrypoints that share the same opening branch (for example `zerg_protoss` -> `zerg`).
+- `target` supports local targets (`"target": "defensive_hold"`) and external targets (`"target": "zp.shared:open"`).
+- A branch must define exactly one of `steps` or branch-level `target`.
+
 Step rules:
 
 - each step must include at least one of `action` or `decision`
@@ -54,26 +68,29 @@ Step rules:
   - `2` -> middle (required)
   - `3` -> right (optional)
 - a branch can have at most one decision step, and it must be the last step in that branch
+- keep common order sections shared in one branch; add a decision only when branches diverge by order content or by timing beyond a small window (roughly more than a few seconds)
 
-### Root branch convention
+### Matchup root convention
 
-- The branches named `zerg`, `terran`, and `protoss` are reserved race roots.
-- Each must exist once globally across all discovered files.
-- These three names are the explicit race-selection choices and are where per-race builds split immediately.
+- Branches named `<player race>_<opponent race>` are reserved matchup roots.
+- Each matchup root must exist once globally across all discovered files.
+- These nine names are the explicit race-selection entrypoints.
 - Non-root build files may omit race branches and just provide reusable branch modules.
 
 ### Cross-file branch references
 
-Decision targets support:
+Targets support:
 
 - local branch target: `"target": "defensive_hold"`
 - external branch target: `"target": "tvz.modules:air_defense"`
+
+This applies to both decision-branch targets and branch-level `target` aliases.
 
 External targets are auto-imported/resolved by the loader; explicit `imports` are not required in compact files.
 
 ## 3) Compact Example
 
-`builds/example.json` includes all three required race roots plus two branches for each race.
+`builds/example.json` should include all nine required matchup roots (or split them across files) plus follow-up branches.
 
 ```json
 {
@@ -238,7 +255,7 @@ Each branch should include the categories that matter for execution, where relev
 ## 5) Validation Workflow
 
 1. Author/update compact build files under `buildsPath` (default `builds/`).
-2. Ensure race roots `zerg`, `terran`, and `protoss` are each defined exactly once globally.
+2. Ensure all nine matchup roots are defined exactly once globally.
 3. Run:
 
 ```bash
@@ -249,8 +266,9 @@ This checks schema validity and graph reference resolution.
 
 ## 6) Hotkeys and Runtime Behavior
 
-`config.json` controls hotkeys (`left`, `middle`, `right`, `pause`, `reset`, `next`) in both focused and global modes.
+`config.json` controls hotkeys (`left`, `middle`, `right`, `pause`, `reset`, `next`, `toggleVisibility`) in both focused and global modes.
 
 - `next` advances within the active build branch and then to next node.
 - On decisions, `left/middle/right` selects branches.
-- Timer starts after opponent race is selected and can be adjusted by `left/right` based on `timer.adjustSeconds`.
+- Timer starts after opponent race is selected (not after player race) and can be adjusted by `left/right` based on `timer.adjustSeconds`.
+- `toggleVisibility` hides/shows the overlay window (default `F7`) without disabling global hotkeys.

@@ -1,5 +1,4 @@
 {
-  "playerRace": "terran",
   "window": {
     "width": 560,
     "height": 320,
@@ -22,7 +21,8 @@
       "right": "F3",
       "reset": "F4",
       "next": "F5",
-      "pause": "F6"
+      "pause": "F6",
+      "toggleVisibility": "F7"
     },
     "focused": {
       "left": "F1",
@@ -30,7 +30,8 @@
       "right": "F3",
       "reset": "F4",
       "next": "F5",
-      "pause": "F6"
+      "pause": "F6",
+      "toggleVisibility": "F7"
     }
   },
   "timer": {

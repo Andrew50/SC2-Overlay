@@ -9,10 +9,10 @@ export interface HotkeyMap {
   pause: string;
   reset: string;
   next: string;
+  toggleVisibility: string;
 }
 
 export interface AppConfig {
-  playerRace: PlayerRace;
   window: {
     width: number;
     height: number;
@@ -77,7 +77,8 @@ export interface CompactBuildStep {
 }
 
 export interface CompactBranchEntry {
-  steps: CompactBuildStep[];
+  steps?: CompactBuildStep[];
+  target?: string;
 }
 
 export type CompactBuildFile = Record<string, CompactBranchEntry>;
@@ -139,6 +140,7 @@ export interface ResolvedBuildGraph {
 export type ControlAction = "left" | "middle" | "right" | "pause" | "reset" | "next";
 
 export interface OpponentRaceOption {
+  playerRace: PlayerRace;
   race: OpponentRace;
   buildId: string;
   label: string;

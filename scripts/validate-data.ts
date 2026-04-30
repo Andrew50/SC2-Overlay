@@ -4,7 +4,9 @@ try {
   const { config, raceOptions } = loadInitialData();
   const nodeCount = raceOptions.reduce((total, option) => total + Object.keys(option.graph.nodes).length, 0);
   console.log("Validation successful.");
-  console.log(`Race options: ${raceOptions.map((option) => `${option.race}:${option.graph.id}`).join(", ")}`);
+  console.log(
+    `Matchup options: ${raceOptions.map((option) => `${option.playerRace}_${option.race}:${option.graph.id}`).join(", ")}`
+  );
   console.log(`Resolved node count (all options): ${nodeCount}`);
   console.log(`Global hotkeys enabled: ${config.hotkeys.globalEnabled}`);
 } catch (error) {

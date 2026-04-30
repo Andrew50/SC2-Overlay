@@ -57,6 +57,21 @@ function broadcastControlAction(action: ControlAction): void {
   }
 }
 
+function toggleMainWindowVisibility(): boolean {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return false;
+  }
+  if (mainWindow.isVisible()) {
+    mainWindow.hide();
+    return false;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  return true;
+}
+
 function applyWindowOverlayOptions(window: BrowserWindow, config: AppConfig): void {
   if (config.window.clickThrough) {
     window.setIgnoreMouseEvents(true, { forward: true });
@@ -150,10 +165,13 @@ function registerGlobalHotkeys(config: AppConfig): void {
     reset: config.hotkeys.global.reset,
     next: config.hotkeys.global.next
   };
+  const toggleVisibilityAccelerator = config.hotkeys.global.toggleVisibility;
 
   const isGnomeWayland =
     isLinuxWayland && (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase().includes("gnome");
-  const hasBareFunctionKeys = Object.values(hotkeyMap).some((accelerator) => /^f\d{1,2}$/i.test(accelerator));
+  const hasBareFunctionKeys = [...Object.values(hotkeyMap), toggleVisibilityAccelerator].some(
+    (accelerator) => /^f\d{1,2}$/i.test(accelerator)
+  );
   if (isGnomeWayland && hasBareFunctionKeys) {
     console.warn(
       "GNOME Wayland typically blocks bare F-key global shortcuts via portal APIs. " +
@@ -173,6 +191,21 @@ function registerGlobalHotkeys(config: AppConfig): void {
       );
     } else {
       console.log(`Registered global shortcut for ${action}: ${accelerator}`);
+    }
+  }
+
+  if (toggleVisibilityAccelerator) {
+    const ok = globalShortcut.register(toggleVisibilityAccelerator, () => {
+      const isVisible = toggleMainWindowVisibility();
+      console.log(`Overlay visibility toggled via global hotkey: ${isVisible ? "shown" : "hidden"}`);
+    });
+    if (!ok) {
+      console.warn(
+        `Failed to register global shortcut for toggleVisibility: ${toggleVisibilityAccelerator}. ` +
+          "This often means the key is reserved by the OS or desktop environment."
+      );
+    } else {
+      console.log(`Registered global shortcut for toggleVisibility: ${toggleVisibilityAccelerator}`);
     }
   }
 }
@@ -236,6 +269,7 @@ function setupIpc(): void {
     return initialData;
   });
   ipcMain.handle("app:reload-data", () => reloadAppData());
+  ipcMain.handle("app:toggle-overlay-visibility", () => toggleMainWindowVisibility());
   ipcMain.handle("app:open-builds-directory", async () => {
     const buildsDirectoryPath = resolveBuildsDirectoryPath();
     const openError = await shell.openPath(buildsDirectoryPath);

@@ -7,6 +7,7 @@ const api = {
   getInitialData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:get-initial-data"),
   reloadData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:reload-data"),
   openBuildsDirectory: (): Promise<string> => ipcRenderer.invoke("app:open-builds-directory"),
+  toggleOverlayVisibility: (): Promise<boolean> => ipcRenderer.invoke("app:toggle-overlay-visibility"),
   onControlAction: (callback: (action: ControlAction) => void): UnsubscribeFn => {
     const listener = (_event: Electron.IpcRendererEvent, action: ControlAction) => {
       callback(action);

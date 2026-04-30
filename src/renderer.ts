@@ -3,6 +3,7 @@ import type {
   ControlAction,
   DecisionNodeEntry,
   InitialAppData,
+  PlayerRace,
   OpponentRace,
   OpponentRaceOption,
   ResolvedBuildGraph
@@ -11,18 +12,22 @@ import type {
 const VISIBLE_QUEUE_COUNT = 5;
 const DECISION_TIMEOUT_SECONDS = 10;
 const ENTRY_GRACE_SECONDS = 5;
+const RACE_START_DELAY_SECONDS = 3;
 
 interface AppState {
   data: InitialAppData;
   activeGraph?: ResolvedBuildGraph;
+  selectedPlayerRace?: PlayerRace;
   selectedOpponentRace?: OpponentRace;
   currentNodeId?: string;
   currentStepIndex: number;
   timerSeconds: number;
   timerPaused: boolean;
   timerStarted: boolean;
+  raceStartPending: boolean;
   currentBranchLabel: string;
   timeoutHandle?: number;
+  raceStartHandle?: number;
 }
 
 interface DecisionChoice {
@@ -121,7 +126,10 @@ function formatHotkey(value: string): string {
   return `[${value.toUpperCase()}]`;
 }
 
-function formatRaceLabel(playerRace: string, opponentRace?: string): string {
+function formatRaceLabel(playerRace?: PlayerRace, opponentRace?: OpponentRace): string {
+  if (!playerRace) {
+    return "Select Your Race";
+  }
   if (!opponentRace) {
     return "Select Opponent Race";
   }
@@ -165,8 +173,30 @@ function getDecisionChoices(node: DecisionNodeEntry): DecisionChoice[] {
   return choices;
 }
 
-function getOpeningRaceChoices(state: AppState): DecisionChoice[] {
-  return state.data.raceOptions.slice(0, 3).map((option, index) => {
+function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
+  const seen = new Set<PlayerRace>();
+  const options = state.data.raceOptions.filter((option) => {
+    if (seen.has(option.playerRace)) {
+      return false;
+    }
+    seen.add(option.playerRace);
+    return true;
+  });
+  return options.slice(0, 3).map((option, index) => {
+    const slot = index === 0 ? "left" : index === 1 ? "middle" : "right";
+    return {
+      key: slot,
+      label: option.playerRace[0].toUpperCase() + option.playerRace.slice(1)
+    } as DecisionChoice;
+  });
+}
+
+function getOpponentRaceChoices(state: AppState): DecisionChoice[] {
+  if (!state.selectedPlayerRace) {
+    return [];
+  }
+  const options = state.data.raceOptions.filter((option) => option.playerRace === state.selectedPlayerRace);
+  return options.slice(0, 3).map((option, index) => {
     const slot = index === 0 ? "left" : index === 1 ? "middle" : "right";
     return {
       key: slot,
@@ -180,8 +210,41 @@ function getChoiceHotkey(state: AppState, key: DecisionChoice["key"]): string {
   return formatHotkey(configured || key);
 }
 
+function selectPlayerRace(state: AppState, branch: "left" | "middle" | "right"): void {
+  const options = state.data.raceOptions
+    .filter((option, index, all) => index === all.findIndex((entry) => entry.playerRace === option.playerRace))
+    .slice(0, 3);
+  const indexByBranch: Record<"left" | "middle" | "right", number> = {
+    left: 0,
+    middle: 1,
+    right: 2
+  };
+  const picked = options[indexByBranch[branch]] ?? options[0];
+  if (!picked) {
+    return;
+  }
+  state.selectedPlayerRace = picked.playerRace;
+  state.selectedOpponentRace = undefined;
+  state.activeGraph = undefined;
+  state.currentNodeId = undefined;
+  state.currentStepIndex = 0;
+  state.timerSeconds = 0;
+  state.timerPaused = false;
+  state.timerStarted = false;
+  state.raceStartPending = false;
+  state.currentBranchLabel = formatRaceLabel(state.selectedPlayerRace);
+  window.clearTimeout(state.timeoutHandle);
+  window.clearTimeout(state.raceStartHandle);
+  render(state);
+}
+
 function selectOpponentRace(state: AppState, branch: "left" | "middle" | "right"): void {
-  const options = state.data.raceOptions.slice(0, 3);
+  if (!state.selectedPlayerRace) {
+    return;
+  }
+  const options = state.data.raceOptions
+    .filter((option) => option.playerRace === state.selectedPlayerRace)
+    .slice(0, 3);
   const indexByBranch: Record<"left" | "middle" | "right", number> = {
     left: 0,
     middle: 1,
@@ -196,16 +259,28 @@ function selectOpponentRace(state: AppState, branch: "left" | "middle" | "right"
 
 function activateGraphForRace(state: AppState, option: OpponentRaceOption): void {
   state.activeGraph = option.graph;
+  state.selectedPlayerRace = option.playerRace;
   state.selectedOpponentRace = option.race;
   state.currentNodeId = option.graph.rootNodeId;
   state.currentStepIndex = 0;
   state.timerSeconds = 0;
-  state.timerPaused = false;
+  state.timerPaused = true;
   state.timerStarted = true;
-  state.currentBranchLabel = formatRaceLabel(state.data.config.playerRace, option.race);
+  state.raceStartPending = true;
+  state.currentBranchLabel = formatRaceLabel(option.playerRace, option.race);
   window.clearTimeout(state.timeoutHandle);
+  window.clearTimeout(state.raceStartHandle);
   alignProgressToGameTime(state);
   render(state);
+
+  state.raceStartHandle = window.setTimeout(() => {
+    if (!state.timerStarted || !state.raceStartPending) {
+      return;
+    }
+    state.raceStartPending = false;
+    state.timerPaused = false;
+    render(state);
+  }, RACE_START_DELAY_SECONDS * 1000);
 }
 
 function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "right"): void {
@@ -400,7 +475,7 @@ function setActionQueueHtml(actionQueue: HTMLElement, html: string): void {
 
 function maybeArmDecisionTimeout(state: AppState): void {
   window.clearTimeout(state.timeoutHandle);
-  if (!state.timerStarted) {
+  if (!state.timerStarted || state.raceStartPending) {
     return;
   }
   state.timeoutHandle = window.setTimeout(() => {
@@ -426,7 +501,8 @@ function render(state: AppState): void {
   decisionContent.innerHTML = "";
 
   if (!state.timerStarted) {
-    setActionQueueHtml(actionQueue, renderSelectionRows(state, getOpeningRaceChoices(state)));
+    const choices = state.selectedPlayerRace ? getOpponentRaceChoices(state) : getPlayerRaceChoices(state);
+    setActionQueueHtml(actionQueue, renderSelectionRows(state, choices));
     maybeArmDecisionTimeout(state);
     return;
   }
@@ -490,22 +566,33 @@ function handleAction(state: AppState, action: ControlAction): void {
 
   if (action === "reset") {
     state.activeGraph = undefined;
+    state.selectedPlayerRace = undefined;
     state.selectedOpponentRace = undefined;
     state.currentNodeId = undefined;
     state.currentStepIndex = 0;
     state.timerSeconds = 0;
     state.timerPaused = false;
     state.timerStarted = false;
-    state.currentBranchLabel = formatRaceLabel(state.data.config.playerRace);
+    state.raceStartPending = false;
+    state.currentBranchLabel = formatRaceLabel();
     window.clearTimeout(state.timeoutHandle);
+    window.clearTimeout(state.raceStartHandle);
     render(state);
     return;
   }
 
   if (!state.timerStarted) {
     if (action === "left" || action === "middle" || action === "right") {
-      selectOpponentRace(state, action);
+      if (!state.selectedPlayerRace) {
+        selectPlayerRace(state, action);
+      } else {
+        selectOpponentRace(state, action);
+      }
     }
+    return;
+  }
+
+  if (state.raceStartPending) {
     return;
   }
 
@@ -537,6 +624,14 @@ function handleAction(state: AppState, action: ControlAction): void {
 function setupFocusedFallback(state: AppState): void {
   window.addEventListener("keydown", (event) => {
     const focusedHotkeys = state.data.config.hotkeys.focused;
+    const pressedKey = event.code.toLowerCase();
+    const pressedValue = event.key.toLowerCase();
+    const toggleVisibilityHotkey = focusedHotkeys.toggleVisibility.toLowerCase();
+    if (pressedKey === toggleVisibilityHotkey || pressedValue === toggleVisibilityHotkey) {
+      event.preventDefault();
+      void window.overlayApi.toggleOverlayVisibility();
+      return;
+    }
     const actionByKey = new Map<string, ControlAction>([
       [focusedHotkeys.left.toLowerCase(), "left"],
       [focusedHotkeys.middle.toLowerCase(), "middle"],
@@ -545,7 +640,7 @@ function setupFocusedFallback(state: AppState): void {
       [focusedHotkeys.reset.toLowerCase(), "reset"],
       [focusedHotkeys.next.toLowerCase(), "next"]
     ]);
-    const action = actionByKey.get(event.code.toLowerCase()) ?? actionByKey.get(event.key.toLowerCase());
+    const action = actionByKey.get(pressedKey) ?? actionByKey.get(pressedValue);
     if (!action) {
       return;
     }
@@ -555,6 +650,7 @@ function setupFocusedFallback(state: AppState): void {
 }
 
 function applyReloadedData(state: AppState, data: InitialAppData): void {
+  const previousPlayerRace = state.selectedPlayerRace;
   const previousRace = state.selectedOpponentRace;
   const previousTimerSeconds = state.timerSeconds;
   const previousTimerPaused = state.timerPaused;
@@ -565,7 +661,9 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
 
   if (hadStarted) {
     const nextOption =
-      data.raceOptions.find((option) => option.race === previousRace) ?? data.raceOptions[0];
+      data.raceOptions.find(
+        (option) => option.playerRace === previousPlayerRace && option.race === previousRace
+      ) ?? data.raceOptions[0];
     if (nextOption) {
       activateGraphForRace(state, nextOption);
       state.timerSeconds = previousTimerSeconds;
@@ -577,14 +675,17 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
   }
 
   state.activeGraph = undefined;
+  state.selectedPlayerRace = undefined;
   state.selectedOpponentRace = undefined;
   state.currentNodeId = undefined;
   state.currentStepIndex = 0;
   state.timerSeconds = 0;
   state.timerPaused = false;
   state.timerStarted = false;
-  state.currentBranchLabel = formatRaceLabel(data.config.playerRace);
+  state.raceStartPending = false;
+  state.currentBranchLabel = formatRaceLabel();
   window.clearTimeout(state.timeoutHandle);
+  window.clearTimeout(state.raceStartHandle);
   render(state);
 }
 
@@ -665,7 +766,8 @@ async function main(): Promise<void> {
     timerSeconds: 0,
     timerPaused: false,
     timerStarted: false,
-    currentBranchLabel: formatRaceLabel(data.config.playerRace)
+    raceStartPending: false,
+    currentBranchLabel: formatRaceLabel()
   };
 
   render(state);
