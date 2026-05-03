@@ -14,6 +14,7 @@ const PRELOAD_JS = path.resolve(THIS_DIR, "preload.js");
 let mainWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
 let runtimeDataRoot = "";
+let runtimeSchemaRoot = "";
 
 const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
 const electronMajor = Number.parseInt(process.versions.electron.split(".")[0] ?? "0", 10);
@@ -214,6 +215,13 @@ function resolvePackagedDataRoot(): string {
   return path.join(app.getPath("userData"), "data");
 }
 
+function resolveBundledDefaultsRoot(bundledRoot: string): string {
+  if (!app.isPackaged) {
+    return bundledRoot;
+  }
+  return path.join(process.resourcesPath, "defaults");
+}
+
 function copyPathIfMissing(sourcePath: string, targetPath: string): void {
   if (existsSync(targetPath) || !existsSync(sourcePath)) {
     return;
@@ -221,23 +229,26 @@ function copyPathIfMissing(sourcePath: string, targetPath: string): void {
   cpSync(sourcePath, targetPath, { recursive: true });
 }
 
-function prepareRuntimeDataRoot(): string {
+function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
   const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
+  const envSchemaRoot = process.env.SC2_OVERLAY_SCHEMA_ROOT?.trim();
   if (envRoot) {
-    return path.resolve(envRoot);
+    const resolved = path.resolve(envRoot);
+    return { dataRoot: resolved, schemaRoot: envSchemaRoot ? path.resolve(envSchemaRoot) : resolved };
   }
 
   const bundledRoot = app.getAppPath();
+  const bundledDefaultsRoot = resolveBundledDefaultsRoot(bundledRoot);
   if (!app.isPackaged) {
-    return bundledRoot;
+    return { dataRoot: bundledRoot, schemaRoot: bundledRoot };
   }
 
   const userDataRoot = resolvePackagedDataRoot();
   mkdirSync(userDataRoot, { recursive: true });
-  copyPathIfMissing(path.join(bundledRoot, "config.json"), path.join(userDataRoot, "config.json"));
-  copyPathIfMissing(path.join(bundledRoot, "builds"), path.join(userDataRoot, "builds"));
+  copyPathIfMissing(path.join(bundledDefaultsRoot, "config.json"), path.join(userDataRoot, "config.json"));
+  copyPathIfMissing(path.join(bundledDefaultsRoot, "builds"), path.join(userDataRoot, "builds"));
   console.log(`Using runtime data root: ${userDataRoot}`);
-  return userDataRoot;
+  return { dataRoot: userDataRoot, schemaRoot: bundledRoot };
 }
 
 function applyDynamicConfig(config: AppConfig): void {
@@ -281,8 +292,11 @@ function setupIpc(): void {
 }
 
 async function bootstrap(): Promise<void> {
-  runtimeDataRoot = prepareRuntimeDataRoot();
+  const runtimePaths = prepareRuntimePaths();
+  runtimeDataRoot = runtimePaths.dataRoot;
+  runtimeSchemaRoot = runtimePaths.schemaRoot;
   process.env.SC2_OVERLAY_APP_ROOT = runtimeDataRoot;
+  process.env.SC2_OVERLAY_SCHEMA_ROOT = runtimeSchemaRoot;
   initialData = reloadAppData();
   mainWindow = createMainWindow(initialData.config);
   setupIpc();

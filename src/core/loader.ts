@@ -18,14 +18,12 @@ import type {
   OpponentRaceOption,
   ResolvedBuildGraph
 } from "./types";
-import { buildSchema, configSchema } from "./schemas";
+import { loadSchemas } from "./schemas";
 
-const ROOT_DIR = path.resolve(process.env.SC2_OVERLAY_APP_ROOT?.trim() || process.cwd());
 const ajv = new Ajv2020({ allErrors: true });
 const RACE_ORDER: PlayerRace[] = ["zerg", "terran", "protoss"];
-
-const validateConfigFn = ajv.compile<AppConfig>(configSchema as AnySchema);
-const validateBuildFn = ajv.compile<CompactBuildFile>(buildSchema as AnySchema);
+let validateConfigFn: ReturnType<typeof ajv.compile<AppConfig>> | null = null;
+let validateBuildFn: ReturnType<typeof ajv.compile<CompactBuildFile>> | null = null;
 
 interface BuildSource {
   id: string;
@@ -40,12 +38,29 @@ interface RaceRootDefinition {
   opponentRace: OpponentRace;
 }
 
+function resolveRootDir(): string {
+  const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
+  if (envRoot) {
+    return path.resolve(envRoot);
+  }
+  return process.cwd();
+}
+
+function ensureValidators(): void {
+  if (validateConfigFn && validateBuildFn) {
+    return;
+  }
+  const { configSchema, buildSchema } = loadSchemas();
+  validateConfigFn = ajv.compile<AppConfig>(configSchema as AnySchema);
+  validateBuildFn = ajv.compile<CompactBuildFile>(buildSchema as AnySchema);
+}
+
 function matchupBranchId(playerRace: PlayerRace, opponentRace: OpponentRace): string {
   return `${playerRace}_${opponentRace}`;
 }
 
 function readJson<T>(relativePath: string): T {
-  const fullPath = path.resolve(ROOT_DIR, relativePath);
+  const fullPath = path.resolve(resolveRootDir(), relativePath);
   const content = readFileSync(fullPath, "utf8");
   return JSON.parse(content) as T;
 }
@@ -55,16 +70,26 @@ function readJsonFile<T>(filePath: string): T {
 }
 
 function ensureValidConfig(config: unknown): AppConfig {
-  if (!validateConfigFn(config)) {
-    throw new Error(`Invalid config.json: ${ajv.errorsText(validateConfigFn.errors)}`);
+  ensureValidators();
+  const validator = validateConfigFn;
+  if (!validator) {
+    throw new Error("Config validator was not initialized.");
+  }
+  if (!validator(config)) {
+    throw new Error(`Invalid config.json: ${ajv.errorsText(validator.errors)}`);
   }
   return config as AppConfig;
 }
 
 function ensureValidBuild(build: unknown, buildIdForError: string): CompactBuildFile {
-  if (!validateBuildFn(build)) {
+  ensureValidators();
+  const validator = validateBuildFn;
+  if (!validator) {
+    throw new Error("Build validator was not initialized.");
+  }
+  if (!validator(build)) {
     throw new Error(
-      `Invalid build file (${buildIdForError}): ${ajv.errorsText(validateBuildFn.errors)}`
+      `Invalid build file (${buildIdForError}): ${ajv.errorsText(validator.errors)}`
     );
   }
   return build as CompactBuildFile;
@@ -121,7 +146,7 @@ function buildIdFromFilePath(buildsRootPath: string, filePath: string): string {
 }
 
 function loadBuildSources(buildsPathFromConfig: string): Map<string, BuildSource> {
-  const buildsRootPath = path.resolve(ROOT_DIR, buildsPathFromConfig);
+  const buildsRootPath = path.resolve(resolveRootDir(), buildsPathFromConfig);
   const jsonFiles = collectJsonFiles(buildsRootPath);
   if (jsonFiles.length === 0) {
     throw new Error(`No build JSON files found under: ${buildsPathFromConfig}`);

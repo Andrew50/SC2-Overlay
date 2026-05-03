@@ -43,10 +43,18 @@
     "files": [
       "dist/**",
       "dist-electron/**",
-      "config.json",
-      "builds/**",
       "schemas/**",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "config.json",
+        "to": "defaults/config.json"
+      },
+      {
+        "from": "builds",
+        "to": "defaults/builds"
+      }
     ],
     "linux": {
       "target": [
