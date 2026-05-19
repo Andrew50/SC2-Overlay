@@ -69,6 +69,35 @@ Step rules:
 - a branch can have at most one decision step, and it must be the last step in that branch
 - keep common order sections shared in one branch; add a decision only when branches diverge by order content or by timing beyond a small window (roughly more than a few seconds)
 
+### Branching strategy (shared-prefix first)
+
+Treat branches as a recursive tree with maximum shared prefix:
+
+- keep all common steps in one core branch
+- branch only at the first meaningful divergence
+- keep leaf branches for the named final builds
+
+Meaningful divergence means one of these changes first:
+
+- structure or add-on order changes
+- gas timing changes (for example, early second gas vs delayed second gas)
+- first tech commitment changes (for example, first Starport unit path)
+
+Avoid premature branching:
+
+- bad: branch right after first Refinery if both lines still take second Refinery, Reaper, and Factory in the same order
+- good: keep one shared core and branch where the second Refinery timing or Starport commitment actually differs
+
+Avoid single-child gates:
+
+- if a branch only forwards to one target, collapse it into the parent path
+- add a decision branch only when there are at least two valid continuations
+
+Use branch aliases (`target`) to keep tree depth readable without duplicating steps:
+
+- use aliases for conceptual grouping nodes
+- keep real step timelines in shared core branches
+
 ### Player root convention
 
 - Branches named `zerg`, `terran`, and `protoss` are reserved canonical roots.
@@ -161,6 +190,15 @@ External targets are auto-imported/resolved by the loader; explicit `imports` ar
 
 Use these naming/format standards to keep branches consistent and readable.
 
+### Branch IDs vs decision labels
+
+Use neutral/mechanics-first IDs for branches, and put scouting context in decision labels.
+
+- branch IDs: `early_second_gas_core`, `reaper_expand_core`, `first_starport_commit`
+- decision labels: `Take second gas immediately [3 Reaper 2 Hellion core]`
+
+Include matchup names in branch IDs only when needed for clarity and when that naming is standard online.
+
 ### Decision option labels
 
 Decision option labels should include both:
@@ -180,6 +218,12 @@ Examples:
 - `Barracks missing / proxy signs scouted [anti-proxy defense]`
 
 Avoid vague labels like `Defend`, `Standard`, `Aggro`, `Macro`.
+
+For popular named builds, prefer the common online name in the response/build portion:
+
+- `Early 3rd Command Center [3CC reaper expand]`
+- `1-1-1 cloak pressure [cloak banshee]`
+- `Proxy commitment [proxy 3-Rax reaper]`
 
 ### Exact step action wording
 
@@ -252,7 +296,54 @@ Each branch should include the categories that matter for execution, where relev
 - production setup and expansion goals
 - rally and multiprong/harass intent
 
-## 5) Validation Workflow
+## 5) Recursive Terran example (shared core, delayed split)
+
+This pattern shows how to avoid premature branching while keeping clear leaves:
+
+```json
+{
+  "terran": { "target": "opener_root" },
+  "opener_root": {
+    "steps": [
+      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
+      {
+        "time": "0:35",
+        "decision": {
+          "1": { "label": "Fast economy opener [CC first]", "target": "cc_first_standard" },
+          "2": { "label": "Barracks first macro opener [standard core]", "target": "standard_gate" },
+          "3": { "label": "Early proxy commitment [proxy set]", "target": "proxy_gate" }
+        }
+      }
+    ]
+  },
+  "standard_gate": {
+    "steps": [
+      { "time": "0:42", "supply": 16, "action": "Barracks" },
+      { "time": "0:43", "supply": 16, "action": "Refinery" },
+      {
+        "time": "0:52",
+        "decision": {
+          "1": {
+            "label": "Delay second gas [one-gas reaper expand core]",
+            "target": "no_second_gas_reaper_expand_core"
+          },
+          "2": {
+            "label": "Take second gas immediately [3 Reaper 2 Hellion core]",
+            "target": "early_second_gas_core"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+Notes:
+
+- this separates by the actual second-gas divergence point
+- two eventual leaves can stay under one shared core until first Starport commitment diverges
+- keep optional responses as bracket notes when strict leaf count is desired
+## 6) Validation Workflow
 
 1. Author/update compact build files under `buildsPath` (default `builds/`).
 2. Ensure `zerg`, `terran`, and `protoss` roots are defined exactly once globally.
@@ -264,7 +355,7 @@ npm run validate:data
 
 This checks schema validity and graph reference resolution.
 
-## 6) Hotkeys and Runtime Behavior
+## 7) Hotkeys and Runtime Behavior
 
 `config.json` controls hotkeys (`left`, `middle`, `right`, `pause`, `reset`, `next`, `toggleVisibility`) in both focused and global modes.
 

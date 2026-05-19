@@ -1,0 +1,330 @@
+{
+  "terran": {
+    "target": "opener_root"
+  },
+  "opener_root": {
+    "steps": [
+      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
+      {
+        "time": "0:35",
+        "decision": {
+          "1": {
+            "label": "CC First [fast economy, most stable in TvZ]",
+            "target": "cc_first_standard"
+          },
+          "2": {
+            "label": "Barracks First [standard macro tree across TvT/TvP and safe TvZ]",
+            "target": "standard_gate"
+          },
+          "3": {
+            "label": "Proxy Openers [early aggression, strongest as surprise in TvT/TvP]",
+            "target": "proxy_gate"
+          }
+        }
+      }
+    ]
+  },
+  "standard_gate": {
+    "steps": [
+      { "time": "0:42", "supply": 16, "action": "Barracks [builder scouts]" },
+      { "time": "0:43", "supply": 16, "action": "Refinery" },
+      {
+        "time": "0:52",
+        "decision": {
+          "1": {
+            "label": "No Early Second Gas [one-gas reaper expand core, common in TvZ macro]",
+            "target": "no_second_gas_reaper_expand_core"
+          },
+          "2": {
+            "label": "Early Second Gas [3 Reaper 2 Hellion shared core, common in TvT/TvZ]",
+            "target": "early_second_gas_core"
+          }
+        }
+      }
+    ]
+  },
+  "no_second_gas_reaper_expand_core": {
+    "steps": [
+      { "time": "1:27", "supply": 19, "action": "Reaper" },
+      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:39", "supply": 20, "action": "Command Center [natural]" },
+      { "time": "1:47", "supply": 20, "action": "Supply Depot [finish wall]" },
+      { "time": "1:58", "supply": 21, "action": "Marine" },
+      { "time": "2:10", "supply": 23, "action": "Factory" },
+      { "time": "2:21", "supply": 23, "action": "Barracks Reactor" },
+      {
+        "time": "2:24",
+        "decision": {
+          "1": {
+            "label": "3CC Reaper Expand [early third CC macro timing, strongest into passive scouting]",
+            "target": "reaper_expand_3cc"
+          },
+          "2": {
+            "label": "Cloak Banshee [1-1-1 cloak pressure and map control, especially TvZ/TvP]",
+            "target": "cloak_banshee"
+          },
+          "3": {
+            "label": "BattleMech [mech transition with Cyclone-Hellion-Banshee, mostly TvZ]",
+            "target": "battlemech"
+          }
+        }
+      }
+    ]
+  },
+  "early_second_gas_core": {
+    "steps": [
+      { "time": "0:53", "supply": 17, "action": "Refinery [second]" },
+      { "time": "1:27", "supply": 19, "action": "Reaper" },
+      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:30", "supply": 20, "action": "Supply Depot" },
+      { "time": "1:42", "supply": 20, "action": "Factory" },
+      { "time": "2:03", "supply": 22, "action": "Barracks Reactor" },
+      { "time": "2:20", "supply": 22, "action": "Command Center [natural]" },
+      { "time": "2:28", "supply": 23, "action": "Hellion" },
+      { "time": "2:38", "supply": 26, "action": "2x Reaper" },
+      { "time": "2:49", "supply": 28, "action": "Hellion" },
+      { "time": "2:57", "supply": 31, "action": "Starport" },
+      { "time": "3:14", "supply": 33, "action": "Factory Tech Lab" },
+      {
+        "time": "3:18",
+        "decision": {
+          "1": {
+            "label": "3 Reaper 2 Hellion Medivac [faster Medivac commitment, lean TvZ pressure]",
+            "target": "reaper_3_hellion_medivac"
+          },
+          "2": {
+            "label": "3 Reaper 2 Hellion Raven [earlier Raven utility, lean TvT control]",
+            "target": "reaper_3_hellion_raven"
+          }
+        }
+      }
+    ]
+  },
+  "proxy_gate": {
+    "steps": [
+      { "time": "0:38", "action": "SCV [send for proxy pathing and placement]" },
+      {
+        "time": "0:44",
+        "decision": {
+          "1": {
+            "label": "Proxy 3-Rax Reaper [high-tempo reaper pressure, mostly TvT]",
+            "target": "proxy_3rax_reaper"
+          },
+          "2": {
+            "label": "Proxy 2-Rax Marauder/Marine [Concussive bunker pressure, mostly TvP]",
+            "target": "proxy_2rax_marauder_marine"
+          },
+          "3": {
+            "label": "Proxy 4-Rax Marine [all-in marine flood, niche anti-greed option]",
+            "target": "proxy_4rax_marine"
+          }
+        }
+      }
+    ]
+  },
+  "cc_first_standard": {
+    "steps": [
+      { "time": "0:53", "supply": 16, "action": "Command Center [natural]" },
+      { "time": "1:06", "supply": 16, "action": "Barracks [wall]" },
+      { "time": "1:12", "supply": 16, "action": "Refinery" },
+      { "time": "1:31", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:34", "supply": 19, "action": "Reaper" },
+      { "time": "1:45", "supply": 20, "action": "Supply Depot [wall]" },
+      { "time": "2:08", "supply": 22, "action": "Factory" },
+      { "time": "2:16", "supply": 23, "action": "Barracks Reactor" },
+      { "time": "2:28", "supply": 24, "action": "Refinery [second]" },
+      { "time": "2:52", "supply": 27, "action": "Orbital Command [natural]" },
+      { "time": "2:56", "supply": 27, "action": "Starport" },
+      { "time": "3:10", "supply": 28, "action": "2x Hellion" },
+      { "time": "3:18", "supply": 30, "action": "Barracks Tech Lab [for Stim]" },
+      { "time": "3:32", "supply": 33, "action": "2x Hellion" },
+      { "time": "3:38", "supply": 37, "action": "Starport Tech Lab" },
+      { "time": "3:55", "supply": 42, "action": "Banshee [safety scout]" },
+      { "time": "4:09", "supply": 45, "action": "Command Center [3rd in main]" },
+      { "time": "4:33", "supply": 53, "action": "Stimpack" },
+      { "time": "4:52", "supply": 59, "action": "2x Barracks" },
+      { "time": "5:02", "supply": 62, "action": "2x Engineering Bay" },
+      { "time": "5:22", "supply": 70, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "5:22", "supply": 70, "action": "Terran Infantry Armor Level 1" },
+      { "time": "5:36", "supply": 74, "action": "Starport Reactor [2x Medivac cycle]" },
+      { "time": "6:10", "action": "[transition to standard 3-base bio-tank-medivac]" }
+    ]
+  },
+  "reaper_expand_3cc": {
+    "steps": [
+      { "time": "2:41", "supply": 26, "action": "Command Center [3rd in main]" },
+      { "time": "2:51", "supply": 26, "action": "Orbital Command [natural]" },
+      { "time": "2:59", "supply": 27, "action": "Starport" },
+      { "time": "3:03", "supply": 27, "action": "Refinery [second]" },
+      { "time": "3:04", "supply": 27, "action": "2x Hellion" },
+      { "time": "3:13", "supply": 32, "action": "Barracks Tech Lab [for Stim]" },
+      { "time": "3:23", "supply": 34, "action": "2x Hellion" },
+      { "time": "3:37", "supply": 40, "action": "Stimpack" },
+      { "time": "3:55", "supply": 46, "action": "Starport Reactor" },
+      { "time": "3:58", "supply": 46, "action": "2x Medivac" },
+      { "time": "4:12", "supply": 52, "action": "2x Barracks" },
+      { "time": "4:36", "supply": 60, "action": "2x Engineering Bay" },
+      { "time": "4:48", "supply": 67, "action": "Refinery [third]" },
+      { "time": "5:04", "supply": 72, "action": "Refinery [fourth]" },
+      { "time": "5:16", "supply": 74, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "5:16", "supply": 74, "action": "Terran Infantry Armor Level 1" },
+      { "time": "5:44", "supply": 82, "action": "Combat Shields" },
+      { "time": "6:00", "action": "[first pressure window with Stim and 2x Medivac]" },
+      { "time": "6:30", "action": "[transition to 5-1-1 bio-mine-medivac]" }
+    ]
+  },
+  "cloak_banshee": {
+    "steps": [
+      { "time": "2:15", "supply": 23, "action": "Refinery [second]" },
+      { "time": "2:57", "supply": 26, "action": "Starport" },
+      { "time": "3:02", "supply": 27, "action": "2x Hellion" },
+      { "time": "3:13", "supply": 32, "action": "Barracks Tech Lab [for Starport swap]" },
+      { "time": "3:23", "supply": 34, "action": "2x Hellion" },
+      { "time": "3:35", "supply": 39, "action": "Starport onto Barracks Tech Lab" },
+      { "time": "3:39", "supply": 40, "action": "Banshee" },
+      { "time": "3:40", "supply": 40, "action": "Cloaking Field" },
+      { "time": "3:48", "supply": 47, "action": "2x Hellion [up to 6]" },
+      { "time": "4:09", "supply": 45, "action": "Command Center [3rd in main]" },
+      { "time": "4:21", "supply": 49, "action": "Banshee" },
+      { "time": "4:27", "supply": 52, "action": "Siege Tank" },
+      { "time": "4:37", "supply": 54, "action": "Stimpack" },
+      { "time": "4:54", "supply": 59, "action": "2x Barracks" },
+      { "time": "5:08", "supply": 61, "action": "2x Refinery" },
+      { "time": "5:15", "supply": 64, "action": "2x Engineering Bay" },
+      { "time": "5:30", "supply": 68, "action": "Starport Reactor [start Medivacs]" },
+      { "time": "5:44", "supply": 82, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "5:44", "supply": 82, "action": "Terran Infantry Armor Level 1" },
+      { "time": "6:20", "supply": 104, "action": "Combat Shields" },
+      { "time": "6:45", "action": "[transition to bio-tank-medivac with Banshee pressure]" }
+    ]
+  },
+  "battlemech": {
+    "steps": [
+      { "time": "2:15", "supply": 23, "action": "Refinery [second]" },
+      { "time": "2:57", "supply": 26, "action": "Starport" },
+      { "time": "3:02", "supply": 27, "action": "Factory onto Barracks Reactor" },
+      { "time": "3:04", "supply": 27, "action": "2x Hellion" },
+      { "time": "3:13", "supply": 32, "action": "Barracks Tech Lab [for Starport swap]" },
+      { "time": "3:23", "supply": 34, "action": "2x Hellion" },
+      { "time": "3:35", "supply": 39, "action": "Starport onto Barracks Tech Lab" },
+      { "time": "3:39", "supply": 40, "action": "Banshee" },
+      { "time": "3:40", "supply": 40, "action": "Cloaking Field" },
+      { "time": "3:48", "supply": 47, "action": "2x Hellion [up to 6]" },
+      { "time": "4:21", "supply": 53, "action": "Command Center [3rd]" },
+      { "time": "4:29", "supply": 55, "action": "Banshee" },
+      { "time": "4:48", "supply": 67, "action": "Refinery [third]" },
+      { "time": "5:04", "supply": 72, "action": "Refinery [fourth]" },
+      { "time": "5:10", "action": "Armory" },
+      { "time": "5:20", "action": "Hyperflight Rotors" },
+      { "time": "5:55", "action": "Factory [second]" },
+      { "time": "6:00", "action": "Factory [third]" },
+      { "time": "6:25", "action": "Factory Tech Lab [second Factory]" },
+      { "time": "6:30", "action": "Factory Tech Lab [third Factory]" },
+      { "time": "6:40", "action": "Cyclone" },
+      { "time": "6:45", "action": "Cyclone" },
+      { "time": "6:50", "action": "Terran Vehicle Weapons Level 1" },
+      { "time": "7:05", "action": "2x Hellion" },
+      { "time": "7:40", "action": "Factory [fourth]" },
+      { "time": "8:10", "action": "[transition to Cyclone-Hellion map control with Banshee vision]" }
+    ]
+  },
+  "reaper_3_hellion_medivac": {
+    "steps": [
+      { "time": "3:33", "supply": 34, "action": "Orbital Command [natural]" },
+      { "time": "3:36", "supply": 34, "action": "Cyclone" },
+      { "time": "3:39", "supply": 40, "action": "Medivac" },
+      { "time": "3:50", "supply": 46, "action": "Barracks [second]" },
+      { "time": "4:05", "supply": 45, "action": "Siege Tank" },
+      { "time": "4:20", "supply": 52, "action": "Bunker [natural]" },
+      { "time": "4:35", "supply": 56, "action": "Siege Tank" },
+      { "time": "4:56", "supply": 66, "action": "Refinery [third]" },
+      { "time": "5:01", "supply": 66, "action": "Barracks [third]" },
+      { "time": "5:18", "supply": 70, "action": "Raven [detection and utility]" },
+      { "time": "5:30", "supply": 75, "action": "Refinery [fourth]" },
+      { "time": "5:38", "supply": 78, "action": "Stimpack" },
+      { "time": "5:56", "supply": 80, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "6:20", "action": "[transition to bio-tank-medivac with active map control]" }
+    ]
+  },
+  "reaper_3_hellion_raven": {
+    "steps": [
+      { "time": "3:24", "supply": 33, "action": "Starport Tech Lab" },
+      { "time": "3:33", "supply": 34, "action": "Orbital Command [natural]" },
+      { "time": "3:35", "supply": 34, "action": "Cyclone" },
+      { "time": "3:49", "supply": 40, "action": "Raven" },
+      { "time": "4:08", "supply": 46, "action": "Siege Tank" },
+      { "time": "4:32", "supply": 56, "action": "Raven" },
+      { "time": "4:45", "supply": 59, "action": "Siege Tank" },
+      { "time": "5:02", "supply": 50, "action": "2x Engineering Bay" },
+      { "time": "5:36", "supply": 59, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "5:36", "supply": 59, "action": "Terran Infantry Armor Level 1" },
+      { "time": "5:37", "supply": 61, "action": "Stimpack" },
+      { "time": "6:00", "supply": 74, "action": "Command Center [3rd]" },
+      { "time": "6:45", "action": "[transition to marine-tank-raven with stronger raven count]" }
+    ]
+  },
+  "proxy_3rax_reaper": {
+    "steps": [
+      { "time": "0:44", "supply": 14, "action": "Barracks [proxy]" },
+      { "time": "0:51", "supply": 14, "action": "Barracks [proxy]" },
+      { "time": "1:09", "supply": 15, "action": "Barracks [main]" },
+      { "time": "1:10", "supply": 15, "action": "Refinery" },
+      { "time": "1:15", "supply": 15, "action": "Refinery [second]" },
+      { "time": "2:10", "supply": 16, "action": "Orbital Command" },
+      { "time": "2:17", "supply": 16, "action": "Supply Depot" },
+      { "time": "2:21", "supply": 16, "action": "2x Reaper" },
+      { "time": "2:27", "supply": 18, "action": "Reaper" },
+      { "time": "2:49", "supply": 19, "action": "Bunker [forward]" },
+      { "time": "2:54", "supply": 19, "action": "Reaper" },
+      { "time": "3:08", "supply": 20, "action": "2x Reaper" },
+      { "time": "3:26", "supply": 22, "action": "Reaper" },
+      { "time": "4:10", "supply": 25, "action": "Factory" },
+      { "time": "4:54", "supply": 31, "action": "Starport" },
+      { "time": "5:20", "action": "[transition to 1-1-1 follow-up if first wave does not end the game]" }
+    ]
+  },
+  "proxy_2rax_marauder_marine": {
+    "steps": [
+      { "time": "0:42", "supply": 15, "action": "Barracks [main]" },
+      { "time": "0:46", "supply": 16, "action": "Refinery" },
+      { "time": "1:01", "supply": 17, "action": "Barracks [proxy]" },
+      { "time": "1:29", "supply": 19, "action": "Reaper" },
+      { "time": "1:31", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:45", "supply": 20, "action": "Supply Depot" },
+      { "time": "1:56", "supply": 20, "action": "Barracks Tech Lab [main]" },
+      { "time": "2:06", "supply": 21, "action": "Barracks Tech Lab [proxy]" },
+      { "time": "2:34", "supply": 23, "action": "Concussive Shells" },
+      { "time": "2:35", "supply": 23, "action": "2x Marauder" },
+      { "time": "2:56", "supply": 28, "action": "Marauder" },
+      { "time": "3:14", "supply": 31, "action": "2x Marauder" },
+      { "time": "3:19", "supply": 31, "action": "Command Center" },
+      { "time": "3:36", "supply": 34, "action": "Bunker [forward]" },
+      { "time": "4:36", "supply": 40, "action": "Stimpack" },
+      { "time": "4:53", "supply": 41, "action": "Starport" },
+      { "time": "5:14", "supply": 46, "action": "Combat Shields" },
+      { "time": "5:40", "action": "[transition to marine-marauder with medivac follow-up]" }
+    ]
+  },
+  "proxy_4rax_marine": {
+    "steps": [
+      { "time": "1:20", "supply": 16, "action": "3x Barracks [proxy]" },
+      { "time": "1:23", "supply": 16, "action": "Barracks [proxy fourth]" },
+      { "time": "1:50", "supply": 18, "action": "Supply Depot" },
+      { "time": "2:07", "supply": 19, "action": "Marine" },
+      { "time": "2:08", "supply": 19, "action": "Marine" },
+      { "time": "2:09", "supply": 22, "action": "Marine" },
+      { "time": "2:09", "supply": 22, "action": "Bunker [forward]" },
+      { "time": "2:17", "supply": 23, "action": "Orbital Command" },
+      { "time": "2:20", "supply": 23, "action": "Marine" },
+      { "time": "2:31", "supply": 23, "action": "Marine" },
+      { "time": "2:36", "supply": 23, "action": "Marine" },
+      { "time": "2:43", "supply": 25, "action": "Marine" },
+      { "time": "2:48", "supply": 27, "action": "Marine" },
+      { "time": "2:56", "supply": 28, "action": "Marine" },
+      { "time": "3:22", "supply": 32, "action": "Factory" },
+      { "time": "4:14", "supply": 34, "action": "Starport" },
+      { "time": "5:05", "supply": 28, "action": "Command Center [behind pressure]" },
+      { "time": "5:30", "action": "[transition off all-in posture if damage was limited]" }
+    ]
+  }
+}
