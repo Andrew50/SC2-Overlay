@@ -9,7 +9,7 @@ import type {
 } from "./core/types";
 
 const VISIBLE_QUEUE_COUNT = 5;
-const DECISION_TIMEOUT_SECONDS = 10;
+const BRANCH_AUTO_SELECT_SECONDS = 5;
 const ENTRY_GRACE_SECONDS = 5;
 const IMMINENT_ACTION_WARNING_SECONDS = 5;
 const COUNTDOWN_DURATION_SECONDS = 3;
@@ -27,6 +27,9 @@ interface AppState {
   timerStarted: boolean;
   currentBranchLabel: string;
   timeoutHandle?: number;
+  timeoutContextKey?: string;
+  timeoutStartedAtMs?: number;
+  timeoutDurationMs?: number;
 }
 
 interface DecisionChoice {
@@ -49,6 +52,7 @@ interface BuildQueueItem {
 interface SelectionQueueItem {
   kind: "selection";
   isCurrent: boolean;
+  elapsedProgress?: number;
   hotkey: string;
   label: string;
 }
@@ -204,6 +208,25 @@ function getChoiceHotkey(state: AppState, key: DecisionChoice["key"]): string {
   return formatHotkey(configured || key);
 }
 
+function clearBranchAutoSelect(state: AppState): void {
+  window.clearTimeout(state.timeoutHandle);
+  state.timeoutHandle = undefined;
+  state.timeoutContextKey = undefined;
+  state.timeoutStartedAtMs = undefined;
+  state.timeoutDurationMs = undefined;
+}
+
+function getSelectionContextKey(state: AppState): string | undefined {
+  if (!state.timerStarted) {
+    return "race-selection";
+  }
+  const node = getCurrentNode(state);
+  if (node?.type === "decision" && state.currentNodeId) {
+    return `decision:${state.currentNodeId}`;
+  }
+  return undefined;
+}
+
 function selectPlayerRace(state: AppState, branch: "left" | "middle" | "right"): void {
   const options = state.data.raceOptions.slice(0, 3);
   const indexByBranch: Record<"left" | "middle" | "right", number> = {
@@ -227,7 +250,7 @@ function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
   state.timerPaused = false;
   state.timerStarted = true;
   state.currentBranchLabel = formatRaceLabel(option.playerRace);
-  window.clearTimeout(state.timeoutHandle);
+  clearBranchAutoSelect(state);
   alignProgressToGameTime(state);
   render(state);
 }
@@ -245,7 +268,7 @@ function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "righ
   state.currentBranchLabel = picked.label;
   state.currentNodeId = picked.target;
   state.currentStepIndex = 0;
-  window.clearTimeout(state.timeoutHandle);
+  clearBranchAutoSelect(state);
   alignProgressToGameTime(state);
   render(state);
 }
@@ -414,11 +437,11 @@ function renderQueueBlocks(queueItems: QueueItem[]): string {
     const selectionClass = item.kind === "selection" ? " is-selection" : "";
     const pastDueClass = item.kind === "build" && item.isPastDue ? " is-past-due" : "";
     const imminentClass = item.kind === "build" && item.isImminent ? " is-imminent" : "";
+    const progressOverlay =
+      typeof item.elapsedProgress === "number"
+        ? `<span class="action-progress${item.kind === "selection" ? " is-selection" : ""}" style="width:${(item.elapsedProgress * 100).toFixed(3)}%"></span>`
+        : "";
     if (item.kind === "build") {
-      const progressOverlay =
-        typeof item.elapsedProgress === "number"
-          ? `<span class="action-progress" style="width:${(item.elapsedProgress * 100).toFixed(3)}%"></span>`
-          : "";
       rows.push(`
         <article class="action-block${currentClass}${selectionClass}${pastDueClass}${imminentClass}">
           ${progressOverlay}
@@ -431,6 +454,7 @@ function renderQueueBlocks(queueItems: QueueItem[]): string {
 
     rows.push(`
       <article class="action-block${currentClass}${selectionClass}${pastDueClass}">
+        ${progressOverlay}
         <span class="action-meta">${escapeHtml(itemMeta)}</span>
         <span class="action-text">${escapeHtml(itemText)}</span>
       </article>
@@ -441,9 +465,15 @@ function renderQueueBlocks(queueItems: QueueItem[]): string {
 
 function renderSelectionRows(state: AppState, choices: DecisionChoice[]): string {
   const rows: QueueItem[] = choices.map((choice, index) => {
+    let elapsedProgress: number | undefined;
+    if (index === 0 && state.timeoutStartedAtMs && state.timeoutDurationMs) {
+      const elapsedMs = Date.now() - state.timeoutStartedAtMs;
+      elapsedProgress = Math.max(0, Math.min(1, elapsedMs / state.timeoutDurationMs));
+    }
     return {
       kind: "selection",
       isCurrent: index === 0,
+      elapsedProgress,
       hotkey: getChoiceHotkey(state, choice.key),
       label: choice.label
     };
@@ -456,16 +486,35 @@ function setActionQueueHtml(actionQueue: HTMLElement, html: string): void {
 }
 
 function maybeArmDecisionTimeout(state: AppState): void {
-  window.clearTimeout(state.timeoutHandle);
-  if (!state.timerStarted) {
+  const contextKey = getSelectionContextKey(state);
+  if (!contextKey) {
+    clearBranchAutoSelect(state);
     return;
   }
+
+  if (state.timeoutHandle && state.timeoutContextKey === contextKey) {
+    return;
+  }
+
+  clearBranchAutoSelect(state);
+  state.timeoutContextKey = contextKey;
+  state.timeoutStartedAtMs = Date.now();
+  state.timeoutDurationMs = BRANCH_AUTO_SELECT_SECONDS * 1000;
   state.timeoutHandle = window.setTimeout(() => {
+    if (state.timeoutContextKey !== contextKey) {
+      return;
+    }
+
+    if (!state.timerStarted) {
+      selectPlayerRace(state, "left");
+      return;
+    }
+
     const node = getCurrentNode(state);
     if (node?.type === "decision") {
       chooseDecisionBranch(state, "left");
     }
-  }, DECISION_TIMEOUT_SECONDS * 1000);
+  }, state.timeoutDurationMs);
 }
 
 function render(state: AppState): void {
@@ -496,7 +545,7 @@ function render(state: AppState): void {
   }
 
   setActionQueueHtml(actionQueue, renderQueueBlocks(collectQueueItems(state, VISIBLE_QUEUE_COUNT)));
-  window.clearTimeout(state.timeoutHandle);
+  clearBranchAutoSelect(state);
 }
 
 function advanceToNextBuildItem(state: AppState): void {
@@ -562,7 +611,7 @@ function handleAction(state: AppState, action: ControlAction): void {
     state.timerPaused = false;
     state.timerStarted = false;
     state.currentBranchLabel = formatRaceLabel();
-    window.clearTimeout(state.timeoutHandle);
+    clearBranchAutoSelect(state);
     void window.overlayApi.showOverlay();
     render(state);
     return;
@@ -666,7 +715,7 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
   state.timerPaused = false;
   state.timerStarted = false;
   state.currentBranchLabel = formatRaceLabel();
-  window.clearTimeout(state.timeoutHandle);
+  clearBranchAutoSelect(state);
   render(state);
 }
 

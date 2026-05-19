@@ -1,0 +1,164 @@
+{
+  "plan_from_no_second_gas_reaper_expand_core": {
+    "steps": [
+      { "time": "2:24", "action": "[insert after Barracks Reactor in no_second_gas_reaper_expand_core]" },
+      {
+        "time": "2:24",
+        "decision": {
+          "1": {
+            "label": "Protoss standard expand with Gateway pressure scouted [TvP 3-1-1 framework]",
+            "target": "tvp_311_gate"
+          },
+          "2": {
+            "label": "Zerg droning and low all-in signs scouted [TvZ 2-1-1 stim pressure]",
+            "target": "tvz_211_stim_medivac"
+          },
+          "3": {
+            "label": "Low-pressure game state scouted [3CC reaper expand]",
+            "target": "terran_core_builds:reaper_expand_3cc"
+          }
+        }
+      }
+    ]
+  },
+  "tvp_311_gate": {
+    "steps": [
+      { "time": "2:15", "supply": 23, "action": "Refinery [second]" },
+      { "time": "2:57", "supply": 26, "action": "Starport" },
+      { "time": "3:02", "supply": 27, "action": "Factory onto Barracks Reactor" },
+      {
+        "time": "3:10",
+        "decision": {
+          "1": {
+            "label": "Twilight / Robo pressure signs scouted [widow mine drop into raven 3-1-1]",
+            "target": "tvp_311_mine_raven"
+          },
+          "2": {
+            "label": "Stargate / Oracle-Phoenix signs scouted [cyclone-viking safety into 3-1-1]",
+            "target": "tvp_stargate_cyclone_viking_311"
+          }
+        }
+      }
+    ]
+  },
+  "tvp_311_mine_raven": {
+    "steps": [
+      { "time": "3:10", "supply": 28, "action": "Widow Mine" },
+      { "time": "3:24", "supply": 34, "action": "Medivac" },
+      { "time": "3:28", "supply": 34, "action": "Widow Mine" },
+      { "time": "3:40", "supply": 38, "action": "Barracks [second]" },
+      { "time": "4:05", "supply": 45, "action": "Barracks [third]" },
+      { "time": "4:20", "supply": 50, "action": "Engineering Bay" },
+      { "time": "4:30", "supply": 54, "action": "Stimpack" },
+      { "time": "4:40", "supply": 57, "action": "Raven" },
+      { "time": "5:10", "supply": 66, "action": "Terran Infantry Weapons Level 1" },
+      { "time": "5:20", "supply": 70, "action": "Combat Shields" },
+      { "time": "5:25", "action": "[move out with 2x Medivac 3-1-1 pressure at Protoss third]" }
+    ]
+  },
+  "tvp_stargate_cyclone_viking_311": {
+    "steps": [
+      { "time": "3:00", "supply": 27, "action": "Factory Tech Lab" },
+      { "time": "3:16", "supply": 31, "action": "Cyclone" },
+      { "time": "3:24", "supply": 34, "action": "Starport" },
+      { "time": "3:40", "supply": 38, "action": "Viking" },
+      { "time": "3:50", "supply": 40, "action": "Cyclone [second if Oracle count is high]" },
+      { "time": "4:05", "supply": 45, "action": "Barracks [second]" },
+      { "time": "4:20", "supply": 50, "action": "Barracks [third]" },
+      { "time": "4:30", "supply": 54, "action": "Engineering Bay" },
+      { "time": "4:35", "supply": 56, "action": "Stimpack" },
+      { "time": "4:45", "supply": 60, "action": "Raven" },
+      { "time": "5:20", "action": "[contain and pressure while stabilizing anti-air]" }
+    ]
+  },
+  "tvz_211_stim_medivac": {
+    "steps": [
+      { "time": "2:15", "supply": 23, "action": "Refinery [second]" },
+      { "time": "2:57", "supply": 26, "action": "Starport" },
+      { "time": "3:02", "supply": 27, "action": "Factory onto Barracks Reactor" },
+      { "time": "3:10", "supply": 28, "action": "2x Hellion" },
+      { "time": "3:18", "supply": 30, "action": "Barracks Tech Lab" },
+      { "time": "3:32", "supply": 33, "action": "2x Hellion [up to 4]" },
+      { "time": "3:50", "supply": 38, "action": "Barracks [second]" },
+      { "time": "4:05", "supply": 44, "action": "Barracks [third]" },
+      { "time": "4:10", "supply": 45, "action": "Starport Reactor" },
+      { "time": "4:30", "supply": 52, "action": "Stimpack" },
+      { "time": "4:45", "supply": 56, "action": "2x Medivac" },
+      { "time": "5:05", "action": "[move out with 2-1-1 timing while adding third CC]" }
+    ]
+  },
+  "plan_from_hellion_banshee_split_core": {
+    "steps": [
+      { "time": "3:40", "action": "[insert after first Banshee and Cloaking Field complete]" },
+      {
+        "time": "3:40",
+        "decision": {
+          "1": {
+            "label": "Need sustained worker pressure and bio follow-up [cloak banshee bio]",
+            "target": "terran_core_builds:cloak_banshee"
+          },
+          "2": {
+            "label": "Longer mech game and air control window desired [BC mech transition]",
+            "target": "tvz_bc_mech"
+          },
+          "3": {
+            "label": "Cyclone-Hellion tempo window preferred [battlemech]",
+            "target": "terran_core_builds:battlemech"
+          }
+        }
+      }
+    ]
+  },
+  "tvz_bc_mech": {
+    "steps": [
+      { "time": "3:40", "supply": 40, "action": "Fusion Core" },
+      { "time": "4:10", "supply": 45, "action": "Command Center [3rd in main]" },
+      { "time": "4:30", "supply": 50, "action": "Battlecruiser" },
+      { "time": "4:45", "supply": 56, "action": "Armory" },
+      { "time": "5:05", "supply": 62, "action": "Factory [second]" },
+      { "time": "5:20", "supply": 67, "action": "Factory [third]" },
+      { "time": "5:30", "supply": 70, "action": "Cyclone" },
+      { "time": "5:35", "supply": 71, "action": "2x Hellion" },
+      { "time": "5:50", "supply": 78, "action": "Yamato Cannon" },
+      { "time": "6:10", "supply": 86, "action": "Terran Vehicle Weapons Level 1" },
+      { "time": "6:30", "action": "[transition to BC-cyclone-hellion map control]" }
+    ]
+  },
+  "plan_from_early_second_gas_core": {
+    "steps": [
+      { "time": "3:18", "action": "[insert at first Starport commitment in early_second_gas_core]" },
+      {
+        "time": "3:18",
+        "decision": {
+          "1": {
+            "label": "Fast drop pressure opportunity identified [3 reaper 2 hellion medivac]",
+            "target": "terran_core_builds:reaper_3_hellion_medivac"
+          },
+          "2": {
+            "label": "Detection and disable utility prioritized [3 reaper 2 hellion raven]",
+            "target": "terran_core_builds:reaper_3_hellion_raven"
+          },
+          "3": {
+            "label": "Longer TvT control game expected [safe raven tank viking macro]",
+            "target": "tvt_safe_raven_tank_viking_macro"
+          }
+        }
+      }
+    ]
+  },
+  "tvt_safe_raven_tank_viking_macro": {
+    "steps": [
+      { "time": "3:24", "supply": 33, "action": "Starport Tech Lab" },
+      { "time": "3:35", "supply": 34, "action": "Cyclone" },
+      { "time": "3:49", "supply": 40, "action": "Raven" },
+      { "time": "4:08", "supply": 46, "action": "Siege Tank" },
+      { "time": "4:28", "supply": 52, "action": "Viking" },
+      { "time": "4:45", "supply": 59, "action": "Siege Tank" },
+      { "time": "5:05", "supply": 64, "action": "Command Center [3rd in main]" },
+      { "time": "5:20", "supply": 70, "action": "Barracks [second]" },
+      { "time": "5:35", "supply": 76, "action": "Barracks [third]" },
+      { "time": "5:50", "supply": 82, "action": "Starport Reactor" },
+      { "time": "6:20", "action": "[transition to marine-tank-raven-viking control]" }
+    ]
+  }
+}

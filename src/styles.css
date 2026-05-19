@@ -128,6 +128,10 @@ body {
   transition: width 100ms linear;
 }
 
+.action-progress.is-selection {
+  background: rgba(255, 219, 120, 0.3);
+}
+
 .action-block .action-text,
 .action-block .action-meta {
   position: relative;

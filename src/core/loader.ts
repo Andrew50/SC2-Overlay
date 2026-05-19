@@ -125,6 +125,9 @@ function collectJsonFiles(dirPath: string): string[] {
     if (entry.name === "index.json") {
       continue;
     }
+    if (entry.name.startsWith("_")) {
+      continue;
+    }
     files.push(fullPath);
   }
   return files.sort();
