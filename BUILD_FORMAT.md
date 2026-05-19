@@ -8,13 +8,12 @@ Build files are auto-discovered from the directory configured in `config.json` (
 
 - There is no `index.json`.
 - Build IDs are auto-derived from file paths under `buildsPath` (relative path without `.json`, with `/` converted to `.`).
-- Across all build files, matchup root branch names must be present in `<player race>_<opponent race>` form.
-- Required matchup roots are: `zerg_zerg`, `zerg_terran`, `zerg_protoss`, `terran_zerg`, `terran_terran`, `terran_protoss`, `protoss_zerg`, `protoss_terran`, `protoss_protoss`.
-- Only one definition per matchup root is allowed globally.
-- All nine matchup roots are required.
-- Build flow diverges first by player race, then by opponent race.
-- The player-race and opponent-race selections are auto-included by the app and must not be authored as in-build `decision` steps.
-- Everything else branches from those matchup roots (locally or cross-file).
+- Across all build files, player root branch names must be present as `zerg`, `terran`, and `protoss`.
+- Only one canonical root per player race is allowed globally.
+- All three player roots are required.
+- Build flow is selected by player race in-app using those canonical roots.
+- The player-race selection is auto-included by the app and must not be authored as an in-build `decision` step.
+- Everything else branches from those player roots (locally or cross-file).
 
 ## 2) Compact Format (Recommended)
 
@@ -56,7 +55,7 @@ Each branch is either:
 Branch-level `target` rules:
 
 - `target` at the branch root creates an immediate jump to another branch without a decision prompt.
-- Use this for matchup entrypoints that share the same opening branch (for example `zerg_protoss` -> `zerg`).
+- Use this for branch aliases that share the same opening branch.
 - `target` supports local targets (`"target": "defensive_hold"`) and external targets (`"target": "zp.shared:open"`).
 - A branch must define exactly one of `steps` or branch-level `target`.
 
@@ -70,11 +69,12 @@ Step rules:
 - a branch can have at most one decision step, and it must be the last step in that branch
 - keep common order sections shared in one branch; add a decision only when branches diverge by order content or by timing beyond a small window (roughly more than a few seconds)
 
-### Matchup root convention
+### Player root convention
 
-- Branches named `<player race>_<opponent race>` are reserved matchup roots.
-- Each matchup root must exist once globally across all discovered files.
-- These nine names are the explicit race-selection entrypoints.
+- Branches named `zerg`, `terran`, and `protoss` are reserved canonical roots.
+- Each player root must exist once globally across all discovered files.
+- These three names are the explicit race-selection entrypoints used by validation and build loading.
+- Branch later inside each race root only when orders actually diverge.
 - Non-root build files may omit race branches and just provide reusable branch modules.
 
 ### Cross-file branch references
@@ -90,7 +90,7 @@ External targets are auto-imported/resolved by the loader; explicit `imports` ar
 
 ## 3) Compact Example
 
-`builds/example.json` should include all nine required matchup roots (or split them across files) plus follow-up branches.
+`builds/example.json` should include the required player roots (or split them across files) plus follow-up branches.
 
 ```json
 {
@@ -255,7 +255,7 @@ Each branch should include the categories that matter for execution, where relev
 ## 5) Validation Workflow
 
 1. Author/update compact build files under `buildsPath` (default `builds/`).
-2. Ensure all nine matchup roots are defined exactly once globally.
+2. Ensure `zerg`, `terran`, and `protoss` roots are defined exactly once globally.
 3. Run:
 
 ```bash
@@ -270,5 +270,5 @@ This checks schema validity and graph reference resolution.
 
 - `next` advances within the active build branch and then to next node.
 - On decisions, `left/middle/right` selects branches.
-- Timer starts after opponent race is selected (not after player race) and can be adjusted by `left/right` based on `timer.adjustSeconds`.
+- Timer starts after player race is selected (with the normal start delay) and can be adjusted by `left/right` based on `timer.adjustSeconds`.
 - `toggleVisibility` hides/shows the overlay window (default `F7`) without disabling global hotkeys.

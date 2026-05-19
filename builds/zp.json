@@ -1,12 +1,4 @@
 {
-  "zerg_terran": { "target": "zerg" },
-  "zerg_protoss": { "target": "zerg" },
-  "zerg_zerg": { "target": "zerg" },
-
-  "protoss_terran": { "target": "protoss" },
-  "protoss_zerg": { "target": "protoss" },
-  "protoss_protoss": { "target": "protoss" },
-
   "zerg": {
     "steps": [
       { "time": "0:01", "supply": 12, "action": "Drone [constant production]" },

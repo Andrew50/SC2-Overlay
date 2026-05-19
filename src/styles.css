@@ -104,6 +104,7 @@ body {
 }
 
 .action-block {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -116,9 +117,21 @@ body {
   overflow: hidden;
 }
 
-.action-block.is-current {
-  background: rgba(39, 96, 255, 0.42);
-  border-color: rgba(143, 181, 255, 0.7);
+.action-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  z-index: 0;
+  transition: width 100ms linear;
+}
+
+.action-block .action-text,
+.action-block .action-meta {
+  position: relative;
+  z-index: 1;
 }
 
 .action-block.is-placeholder {
@@ -133,6 +146,11 @@ body {
 .action-block.is-past-due .action-meta,
 .action-block.is-past-due .action-text {
   color: rgba(187, 196, 212, 0.66);
+}
+
+.action-block.is-imminent {
+  background: rgba(38, 156, 95, 0.45);
+  border-color: rgba(122, 237, 177, 0.8);
 }
 
 .action-meta {

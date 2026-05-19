@@ -139,9 +139,8 @@ export interface ResolvedBuildGraph {
 
 export type ControlAction = "left" | "middle" | "right" | "pause" | "reset" | "next";
 
-export interface OpponentRaceOption {
+export interface PlayerRaceOption {
   playerRace: PlayerRace;
-  race: OpponentRace;
   buildId: string;
   label: string;
   graph: ResolvedBuildGraph;
@@ -149,5 +148,5 @@ export interface OpponentRaceOption {
 
 export interface InitialAppData {
   config: AppConfig;
-  raceOptions: OpponentRaceOption[];
+  raceOptions: PlayerRaceOption[];
 }

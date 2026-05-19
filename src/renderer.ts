@@ -4,30 +4,29 @@ import type {
   DecisionNodeEntry,
   InitialAppData,
   PlayerRace,
-  OpponentRace,
-  OpponentRaceOption,
+  PlayerRaceOption,
   ResolvedBuildGraph
 } from "./core/types";
 
 const VISIBLE_QUEUE_COUNT = 5;
 const DECISION_TIMEOUT_SECONDS = 10;
 const ENTRY_GRACE_SECONDS = 5;
-const RACE_START_DELAY_SECONDS = 3;
+const IMMINENT_ACTION_WARNING_SECONDS = 5;
+const COUNTDOWN_DURATION_SECONDS = 3;
+const COUNTDOWN_JUMP_SECONDS = 2.5;
+const TICK_INTERVAL_MS = 100;
 
 interface AppState {
   data: InitialAppData;
   activeGraph?: ResolvedBuildGraph;
   selectedPlayerRace?: PlayerRace;
-  selectedOpponentRace?: OpponentRace;
   currentNodeId?: string;
   currentStepIndex: number;
   timerSeconds: number;
   timerPaused: boolean;
   timerStarted: boolean;
-  raceStartPending: boolean;
   currentBranchLabel: string;
   timeoutHandle?: number;
-  raceStartHandle?: number;
 }
 
 interface DecisionChoice {
@@ -40,6 +39,8 @@ interface BuildQueueItem {
   kind: "build";
   isCurrent: boolean;
   isPastDue?: boolean;
+  isImminent?: boolean;
+  elapsedProgress?: number;
   action: string;
   time?: string;
   supply?: number;
@@ -107,6 +108,16 @@ function formatSeconds(totalSeconds: number): string {
   return `${minutes}:${seconds}`;
 }
 
+function toTimelineSeconds(state: AppState): number {
+  return state.timerSeconds;
+}
+
+function formatTimerDisplay(value: number): string {
+  const rounded = Math.round(value);
+  const prefix = rounded < 0 ? "-" : "";
+  return `${prefix}${formatSeconds(Math.abs(rounded))}`;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -126,14 +137,11 @@ function formatHotkey(value: string): string {
   return `[${value.toUpperCase()}]`;
 }
 
-function formatRaceLabel(playerRace?: PlayerRace, opponentRace?: OpponentRace): string {
+function formatRaceLabel(playerRace?: PlayerRace): string {
   if (!playerRace) {
     return "Select Your Race";
   }
-  if (!opponentRace) {
-    return "Select Opponent Race";
-  }
-  return `${playerRace.toUpperCase()} vs ${opponentRace.toUpperCase()}`;
+  return playerRace.toUpperCase();
 }
 
 function setReloadStatus(message: string, isError = false): void {
@@ -191,60 +199,13 @@ function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
   });
 }
 
-function getOpponentRaceChoices(state: AppState): DecisionChoice[] {
-  if (!state.selectedPlayerRace) {
-    return [];
-  }
-  const options = state.data.raceOptions.filter((option) => option.playerRace === state.selectedPlayerRace);
-  return options.slice(0, 3).map((option, index) => {
-    const slot = index === 0 ? "left" : index === 1 ? "middle" : "right";
-    return {
-      key: slot,
-      label: option.label
-    } as DecisionChoice;
-  });
-}
-
 function getChoiceHotkey(state: AppState, key: DecisionChoice["key"]): string {
   const configured = state.data.config.hotkeys.focused[key];
   return formatHotkey(configured || key);
 }
 
 function selectPlayerRace(state: AppState, branch: "left" | "middle" | "right"): void {
-  const options = state.data.raceOptions
-    .filter((option, index, all) => index === all.findIndex((entry) => entry.playerRace === option.playerRace))
-    .slice(0, 3);
-  const indexByBranch: Record<"left" | "middle" | "right", number> = {
-    left: 0,
-    middle: 1,
-    right: 2
-  };
-  const picked = options[indexByBranch[branch]] ?? options[0];
-  if (!picked) {
-    return;
-  }
-  state.selectedPlayerRace = picked.playerRace;
-  state.selectedOpponentRace = undefined;
-  state.activeGraph = undefined;
-  state.currentNodeId = undefined;
-  state.currentStepIndex = 0;
-  state.timerSeconds = 0;
-  state.timerPaused = false;
-  state.timerStarted = false;
-  state.raceStartPending = false;
-  state.currentBranchLabel = formatRaceLabel(state.selectedPlayerRace);
-  window.clearTimeout(state.timeoutHandle);
-  window.clearTimeout(state.raceStartHandle);
-  render(state);
-}
-
-function selectOpponentRace(state: AppState, branch: "left" | "middle" | "right"): void {
-  if (!state.selectedPlayerRace) {
-    return;
-  }
-  const options = state.data.raceOptions
-    .filter((option) => option.playerRace === state.selectedPlayerRace)
-    .slice(0, 3);
+  const options = state.data.raceOptions.slice(0, 3);
   const indexByBranch: Record<"left" | "middle" | "right", number> = {
     left: 0,
     middle: 1,
@@ -257,30 +218,18 @@ function selectOpponentRace(state: AppState, branch: "left" | "middle" | "right"
   activateGraphForRace(state, picked);
 }
 
-function activateGraphForRace(state: AppState, option: OpponentRaceOption): void {
+function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
   state.activeGraph = option.graph;
   state.selectedPlayerRace = option.playerRace;
-  state.selectedOpponentRace = option.race;
   state.currentNodeId = option.graph.rootNodeId;
   state.currentStepIndex = 0;
-  state.timerSeconds = 0;
-  state.timerPaused = true;
+  state.timerSeconds = -COUNTDOWN_DURATION_SECONDS;
+  state.timerPaused = false;
   state.timerStarted = true;
-  state.raceStartPending = true;
-  state.currentBranchLabel = formatRaceLabel(option.playerRace, option.race);
+  state.currentBranchLabel = formatRaceLabel(option.playerRace);
   window.clearTimeout(state.timeoutHandle);
-  window.clearTimeout(state.raceStartHandle);
   alignProgressToGameTime(state);
   render(state);
-
-  state.raceStartHandle = window.setTimeout(() => {
-    if (!state.timerStarted || !state.raceStartPending) {
-      return;
-    }
-    state.raceStartPending = false;
-    state.timerPaused = false;
-    render(state);
-  }, RACE_START_DELAY_SECONDS * 1000);
 }
 
 function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "right"): void {
@@ -368,6 +317,15 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
   const items: QueueItem[] = [];
   let nodeId = activeNodeId;
   let stepIndex = activeStepIndex;
+  let previousBuildStepSeconds = 0;
+
+  if (activeNode?.type === "build" && activeStepIndex > 0) {
+    const previousStep = activeNode.steps[activeStepIndex - 1];
+    const previousStepSeconds = stepTimeSeconds(previousStep?.time);
+    if (Number.isFinite(previousStepSeconds)) {
+      previousBuildStepSeconds = previousStepSeconds;
+    }
+  }
 
   while (items.length < count) {
     const node = state.activeGraph.nodes[nodeId];
@@ -378,13 +336,31 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
     if (node.type === "build") {
       for (let index = stepIndex; index < node.steps.length && items.length < count; index += 1) {
         const step = node.steps[index];
+        const stepSeconds = stepTimeSeconds(step.time);
+        const secondsUntilStep = stepSeconds - state.timerSeconds;
+        let elapsedProgress: number | undefined;
+        if (Number.isFinite(stepSeconds) && Number.isFinite(previousBuildStepSeconds)) {
+          const duration = stepSeconds - previousBuildStepSeconds;
+          if (duration > 0) {
+            const elapsed = state.timerSeconds - previousBuildStepSeconds;
+            elapsedProgress = Math.max(0, Math.min(1, elapsed / duration));
+          }
+        }
         items.push({
           kind: "build",
           isCurrent: nodeId === activeNodeId && index === activeStepIndex,
+          isImminent:
+            Number.isFinite(stepSeconds) &&
+            secondsUntilStep >= 0 &&
+            secondsUntilStep <= IMMINENT_ACTION_WARNING_SECONDS,
+          elapsedProgress,
           action: step.action,
           time: step.time,
           supply: step.supply
         });
+        if (Number.isFinite(stepSeconds)) {
+          previousBuildStepSeconds = stepSeconds;
+        }
       }
       if (items.length >= count || !node.next) {
         break;
@@ -437,9 +413,15 @@ function renderQueueBlocks(queueItems: QueueItem[]): string {
     const currentClass = item.isCurrent ? " is-current" : "";
     const selectionClass = item.kind === "selection" ? " is-selection" : "";
     const pastDueClass = item.kind === "build" && item.isPastDue ? " is-past-due" : "";
+    const imminentClass = item.kind === "build" && item.isImminent ? " is-imminent" : "";
     if (item.kind === "build") {
+      const progressOverlay =
+        typeof item.elapsedProgress === "number"
+          ? `<span class="action-progress" style="width:${(item.elapsedProgress * 100).toFixed(3)}%"></span>`
+          : "";
       rows.push(`
-        <article class="action-block${currentClass}${selectionClass}${pastDueClass}">
+        <article class="action-block${currentClass}${selectionClass}${pastDueClass}${imminentClass}">
+          ${progressOverlay}
           <span class="action-text">${escapeHtml(itemText)}</span>
           <span class="action-meta">${escapeHtml(itemMeta)}</span>
         </article>
@@ -475,7 +457,7 @@ function setActionQueueHtml(actionQueue: HTMLElement, html: string): void {
 
 function maybeArmDecisionTimeout(state: AppState): void {
   window.clearTimeout(state.timeoutHandle);
-  if (!state.timerStarted || state.raceStartPending) {
+  if (!state.timerStarted) {
     return;
   }
   state.timeoutHandle = window.setTimeout(() => {
@@ -492,8 +474,7 @@ function render(state: AppState): void {
   const actionQueue = assertElement(els.actionQueue, "action-queue");
   const upcomingDecisions = assertElement(els.upcomingDecisions, "upcoming-decisions");
   const decisionContent = assertElement(els.decisionContent, "decision-content");
-
-  timerValue.textContent = formatSeconds(state.timerSeconds);
+  timerValue.textContent = formatTimerDisplay(state.timerSeconds);
   branchValue.textContent = state.currentBranchLabel;
   els.setupControls?.classList.toggle("is-hidden", state.timerStarted);
   els.reloadStatus?.classList.toggle("is-hidden", state.timerStarted);
@@ -501,7 +482,7 @@ function render(state: AppState): void {
   decisionContent.innerHTML = "";
 
   if (!state.timerStarted) {
-    const choices = state.selectedPlayerRace ? getOpponentRaceChoices(state) : getPlayerRaceChoices(state);
+    const choices = getPlayerRaceChoices(state);
     setActionQueueHtml(actionQueue, renderSelectionRows(state, choices));
     maybeArmDecisionTimeout(state);
     return;
@@ -561,39 +542,45 @@ function advanceToNextBuildItem(state: AppState): void {
   }
 }
 
+function handleCountdownNavigation(state: AppState, direction: "left" | "right"): void {
+  const delta = direction === "left" ? -COUNTDOWN_JUMP_SECONDS : COUNTDOWN_JUMP_SECONDS;
+  const currentTimeline = toTimelineSeconds(state);
+  state.timerSeconds = Math.max(-COUNTDOWN_DURATION_SECONDS, currentTimeline + delta);
+  alignProgressToGameTime(state);
+  render(state);
+}
+
 function handleAction(state: AppState, action: ControlAction): void {
   const node = getCurrentNode(state);
 
   if (action === "reset") {
     state.activeGraph = undefined;
     state.selectedPlayerRace = undefined;
-    state.selectedOpponentRace = undefined;
     state.currentNodeId = undefined;
     state.currentStepIndex = 0;
     state.timerSeconds = 0;
     state.timerPaused = false;
     state.timerStarted = false;
-    state.raceStartPending = false;
     state.currentBranchLabel = formatRaceLabel();
     window.clearTimeout(state.timeoutHandle);
-    window.clearTimeout(state.raceStartHandle);
+    void window.overlayApi.showOverlay();
     render(state);
     return;
   }
 
   if (!state.timerStarted) {
     if (action === "left" || action === "middle" || action === "right") {
-      if (!state.selectedPlayerRace) {
-        selectPlayerRace(state, action);
-      } else {
-        selectOpponentRace(state, action);
-      }
+      selectPlayerRace(state, action);
     }
     return;
   }
 
-  if (state.raceStartPending) {
-    return;
+  if (action === "left" || action === "right") {
+    const canNavigateCountdown = state.timerSeconds <= COUNTDOWN_DURATION_SECONDS;
+    if (canNavigateCountdown) {
+      handleCountdownNavigation(state, action);
+      return;
+    }
   }
 
   if (action === "pause") {
@@ -651,7 +638,6 @@ function setupFocusedFallback(state: AppState): void {
 
 function applyReloadedData(state: AppState, data: InitialAppData): void {
   const previousPlayerRace = state.selectedPlayerRace;
-  const previousRace = state.selectedOpponentRace;
   const previousTimerSeconds = state.timerSeconds;
   const previousTimerPaused = state.timerPaused;
   const hadStarted = state.timerStarted;
@@ -661,9 +647,7 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
 
   if (hadStarted) {
     const nextOption =
-      data.raceOptions.find(
-        (option) => option.playerRace === previousPlayerRace && option.race === previousRace
-      ) ?? data.raceOptions[0];
+      data.raceOptions.find((option) => option.playerRace === previousPlayerRace) ?? data.raceOptions[0];
     if (nextOption) {
       activateGraphForRace(state, nextOption);
       state.timerSeconds = previousTimerSeconds;
@@ -676,16 +660,13 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
 
   state.activeGraph = undefined;
   state.selectedPlayerRace = undefined;
-  state.selectedOpponentRace = undefined;
   state.currentNodeId = undefined;
   state.currentStepIndex = 0;
   state.timerSeconds = 0;
   state.timerPaused = false;
   state.timerStarted = false;
-  state.raceStartPending = false;
   state.currentBranchLabel = formatRaceLabel();
   window.clearTimeout(state.timeoutHandle);
-  window.clearTimeout(state.raceStartHandle);
   render(state);
 }
 
@@ -748,12 +729,13 @@ function setupReloadControl(state: AppState): void {
 
 function startTickLoop(state: AppState): void {
   window.setInterval(() => {
-    if (state.timerStarted && !state.timerPaused) {
-      state.timerSeconds += 1;
+    if (!state.timerStarted) return;
+    if (!state.timerPaused) {
+      state.timerSeconds += TICK_INTERVAL_MS / 1000;
       alignProgressToGameTime(state);
       render(state);
     }
-  }, 1000);
+  }, TICK_INTERVAL_MS);
 }
 
 async function main(): Promise<void> {
@@ -766,7 +748,6 @@ async function main(): Promise<void> {
     timerSeconds: 0,
     timerPaused: false,
     timerStarted: false,
-    raceStartPending: false,
     currentBranchLabel: formatRaceLabel()
   };
 

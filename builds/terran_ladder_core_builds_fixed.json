@@ -1,5 +1,5 @@
 {
-  "terran_zerg": {
+  "terran": {
     "steps": [
       {
         "time": "0:17",
@@ -16,6 +16,28 @@
         "supply": 16,
         "action": "Refinery"
       },
+      {
+        "time": "0:52",
+        "supply": 16,
+        "decision": {
+          "1": {
+            "label": "One-Gas Reaper Expand",
+            "target": "tvz_reaper_expand"
+          },
+          "2": {
+            "label": "Double Refinery Reaper Expand",
+            "target": "tvt_double_refinery_reaper_expand"
+          },
+          "3": {
+            "label": "Two-Gas Expand",
+            "target": "tvp_two_gas_expand"
+          }
+        }
+      }
+    ]
+  },
+  "tvz_reaper_expand": {
+    "steps": [
       {
         "time": "1:27",
         "supply": 19,
@@ -41,34 +63,19 @@
         "supply": 21,
         "decision": {
           "1": {
-            "label": "Normal Zerg / blind macro continuation [Clem fast 3rd bio-mine]",
-            "target": "tvz_clem_111_fast_3rd_cc_hellions"
+            "label": "Reaper FE Hellion-Liberator 3CC",
+            "target": "tvz_reaper_fe_hellion_liberator_3cc"
           },
           "2": {
-            "label": "Drone-first greed / initiative wanted [FoxeR Hellion cloak-Banshee timing]",
-            "target": "tvz_foxer_111_hellion_cloak_banshee"
+            "label": "1-1-1 Hellion Cloak Banshee",
+            "target": "tvz_hellion_cloak_banshee"
           }
         }
       }
     ]
   },
-  "terran_terran": {
+  "tvt_double_refinery_reaper_expand": {
     "steps": [
-      {
-        "time": "0:17",
-        "supply": 14,
-        "action": "Supply Depot [ramp]"
-      },
-      {
-        "time": "0:40",
-        "supply": 16,
-        "action": "Barracks"
-      },
-      {
-        "time": "0:43",
-        "supply": 16,
-        "action": "Refinery"
-      },
       {
         "time": "0:53",
         "supply": 17,
@@ -94,34 +101,19 @@
         "supply": 20,
         "decision": {
           "1": {
-            "label": "Standard mirror expand / no proxy signs scouted [standard 3 Reaper 2 Hellion marine-tank-raven]",
-            "target": "tvt_standard_3_reaper_2_hellion"
+            "label": "3 Reaper 2 Hellion",
+            "target": "tvt_3_reaper_2_hellion"
           },
           "2": {
-            "label": "Proxy signs / abnormal Reaper pressure or safer timing selected [FoxeR raven-tank timing]",
-            "target": "tvt_foxer_111_ravens_timing"
+            "label": "Raven-Tank Timing",
+            "target": "tvt_raven_tank_timing"
           }
         }
       }
     ]
   },
-  "terran_protoss": {
+  "tvp_two_gas_expand": {
     "steps": [
-      {
-        "time": "0:17",
-        "supply": 14,
-        "action": "Supply Depot [ramp]"
-      },
-      {
-        "time": "0:40",
-        "supply": 16,
-        "action": "Barracks"
-      },
-      {
-        "time": "0:43",
-        "supply": 16,
-        "action": "Refinery"
-      },
       {
         "time": "0:52",
         "supply": 16,
@@ -132,18 +124,18 @@
         "supply": 18,
         "decision": {
           "1": {
-            "label": "Unknown/standard Protoss opener [Clem 3 Reaper 2 Hellion bio-tank-raven]",
-            "target": "tvp_clem_3_reaper_2_hellion"
+            "label": "3 Reaper 2 Hellion",
+            "target": "tvp_3_reaper_2_hellion"
           },
           "2": {
-            "label": "Passive tech / fast 3rd potential or proactive pressure selected [FoxeR Widow Mine drop bio-mine]",
-            "target": "tvp_foxer_111_widow_mine_drop_timing"
+            "label": "Widow Mine Drop",
+            "target": "tvp_widow_mine_drop"
           }
         }
       }
     ]
   },
-  "tvz_clem_111_fast_3rd_cc_hellions": {
+  "tvz_reaper_fe_hellion_liberator_3cc": {
     "steps": [
       {
         "time": "1:59",
@@ -302,7 +294,7 @@
       }
     ]
   },
-  "tvz_foxer_111_hellion_cloak_banshee": {
+  "tvz_hellion_cloak_banshee": {
     "steps": [
       {
         "time": "2:08",
@@ -448,7 +440,7 @@
       }
     ]
   },
-  "tvp_clem_3_reaper_2_hellion": {
+  "tvp_3_reaper_2_hellion": {
     "steps": [
       {
         "time": "1:18",
@@ -648,7 +640,7 @@
       }
     ]
   },
-  "tvp_foxer_111_widow_mine_drop_timing": {
+  "tvp_widow_mine_drop": {
     "steps": [
       {
         "time": "1:27",
@@ -819,7 +811,7 @@
       }
     ]
   },
-  "tvt_standard_3_reaper_2_hellion": {
+  "tvt_3_reaper_2_hellion": {
     "steps": [
       {
         "time": "1:42",
@@ -960,7 +952,7 @@
       }
     ]
   },
-  "tvt_foxer_111_ravens_timing": {
+  "tvt_raven_tank_timing": {
     "steps": [
       {
         "time": "1:40",

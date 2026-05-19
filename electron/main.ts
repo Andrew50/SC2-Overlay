@@ -73,6 +73,18 @@ function toggleMainWindowVisibility(): boolean {
   return true;
 }
 
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.show();
+  }
+}
+
 function applyWindowOverlayOptions(window: BrowserWindow, config: AppConfig): void {
   if (config.window.clickThrough) {
     window.setIgnoreMouseEvents(true, { forward: true });
@@ -281,6 +293,7 @@ function setupIpc(): void {
   });
   ipcMain.handle("app:reload-data", () => reloadAppData());
   ipcMain.handle("app:toggle-overlay-visibility", () => toggleMainWindowVisibility());
+  ipcMain.handle("app:show-overlay", () => showMainWindow());
   ipcMain.handle("app:open-builds-directory", async () => {
     const buildsDirectoryPath = resolveBuildsDirectoryPath();
     const openError = await shell.openPath(buildsDirectoryPath);

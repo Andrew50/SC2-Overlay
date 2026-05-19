@@ -15,7 +15,7 @@ import type {
   DecisionNodeEntry,
   PlayerRace,
   OpponentRace,
-  OpponentRaceOption,
+  PlayerRaceOption,
   ResolvedBuildGraph
 } from "./types";
 import { loadSchemas } from "./schemas";
@@ -35,7 +35,6 @@ interface RaceRootDefinition {
   buildId: string;
   branchId: string;
   playerRace: PlayerRace;
-  opponentRace: OpponentRace;
 }
 
 function resolveRootDir(): string {
@@ -53,10 +52,6 @@ function ensureValidators(): void {
   const { configSchema, buildSchema } = loadSchemas();
   validateConfigFn = ajv.compile<AppConfig>(configSchema as AnySchema);
   validateBuildFn = ajv.compile<CompactBuildFile>(buildSchema as AnySchema);
-}
-
-function matchupBranchId(playerRace: PlayerRace, opponentRace: OpponentRace): string {
-  return `${playerRace}_${opponentRace}`;
 }
 
 function readJson<T>(relativePath: string): T {
@@ -169,35 +164,29 @@ function loadBuildSources(buildsPathFromConfig: string): Map<string, BuildSource
   return sources;
 }
 
-function discoverRaceRoots(sources: Map<string, BuildSource>): Map<string, RaceRootDefinition> {
-  const roots = new Map<string, RaceRootDefinition>();
+function discoverRaceRoots(sources: Map<string, BuildSource>): Map<PlayerRace, RaceRootDefinition> {
+  const roots = new Map<PlayerRace, RaceRootDefinition>();
 
   for (const source of sources.values()) {
     for (const playerRace of RACE_ORDER) {
-      for (const opponentRace of RACE_ORDER) {
-        const branchId = matchupBranchId(playerRace, opponentRace);
-        if (!Object.prototype.hasOwnProperty.call(source.build, branchId)) {
-          continue;
-        }
-
-        const existing = roots.get(branchId);
-        if (existing) {
-          throw new Error(
-            `Matchup root "${branchId}" is defined multiple times (${existing.buildId} and ${source.id}). ` +
-              "Only one root branch per matchup is allowed."
-          );
-        }
-        roots.set(branchId, { buildId: source.id, branchId, playerRace, opponentRace });
+      const branchId = playerRace;
+      if (!Object.prototype.hasOwnProperty.call(source.build, branchId)) {
+        continue;
       }
+      const existing = roots.get(playerRace);
+      if (existing) {
+        throw new Error(
+          `Player root "${branchId}" is defined multiple times (${existing.buildId} and ${source.id}). ` +
+            "Only one root branch per player race is allowed."
+        );
+      }
+      roots.set(playerRace, { buildId: source.id, branchId, playerRace });
     }
   }
 
   for (const playerRace of RACE_ORDER) {
-    for (const opponentRace of RACE_ORDER) {
-      const branchId = matchupBranchId(playerRace, opponentRace);
-      if (!roots.has(branchId)) {
-        throw new Error(`Missing required matchup root branch "${branchId}" across all build files.`);
-      }
+    if (!roots.has(playerRace)) {
+      throw new Error(`Missing required player root branch "${playerRace}" across all build files.`);
     }
   }
 
@@ -521,39 +510,43 @@ export function loadConfig(): AppConfig {
 }
 
 export function loadResolvedGraph(config: AppConfig): ResolvedBuildGraph {
-  const raceOptions = loadOpponentRaceOptions(config);
+  const raceOptions = loadPlayerRaceOptions(config);
   if (raceOptions.length === 0) {
-    throw new Error("No opponent race options were resolved.");
+    throw new Error("No player race options were resolved.");
   }
   return raceOptions[0].graph;
 }
 
-export function loadOpponentRaceOptions(config: AppConfig): OpponentRaceOption[] {
+function getPrimaryRootForPlayerRace(
+  raceRoots: Map<PlayerRace, RaceRootDefinition>,
+  playerRace: PlayerRace
+): RaceRootDefinition {
+  const root = raceRoots.get(playerRace);
+  if (root) {
+    return root;
+  }
+  throw new Error(`Missing required player root for player race "${playerRace}".`);
+}
+
+export function loadPlayerRaceOptions(config: AppConfig): PlayerRaceOption[] {
   const sources = loadBuildSources(config.data.buildsPath);
   const raceRoots = discoverRaceRoots(sources);
 
-  return RACE_ORDER.flatMap((playerRace) =>
-    RACE_ORDER.map((opponentRace) => {
-      const branchId = matchupBranchId(playerRace, opponentRace);
-      const root = raceRoots.get(branchId);
-      if (!root) {
-        throw new Error(`Missing required matchup root "${branchId}".`);
-      }
-      const graph = resolveBuildById(root.buildId, sources, opponentRace);
-      graph.rootNodeId = root.branchId;
-      return {
-        playerRace,
-        race: opponentRace,
-        buildId: root.buildId,
-        label: toTitleCase(opponentRace),
-        graph
-      } satisfies OpponentRaceOption;
-    })
-  );
+  return RACE_ORDER.map((playerRace) => {
+    const root = getPrimaryRootForPlayerRace(raceRoots, playerRace);
+    const graph = resolveBuildById(root.buildId, sources, playerRace);
+    graph.rootNodeId = root.branchId;
+    return {
+      playerRace,
+      buildId: root.buildId,
+      label: toTitleCase(playerRace),
+      graph
+    } satisfies PlayerRaceOption;
+  });
 }
 
 export function loadInitialData() {
   const config = loadConfig();
-  const raceOptions = loadOpponentRaceOptions(config);
+  const raceOptions = loadPlayerRaceOptions(config);
   return { config, raceOptions };
 }

@@ -1,0 +1,207 @@
+{
+  "terran_battlemech_opening": {
+    "target": "tvz_battlemech_reaper_expand"
+  },
+
+  "tvz_battlemech_reaper_expand": {
+    "steps": [
+      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
+      { "time": "0:39", "supply": 15, "action": "Barracks [wall]" },
+      { "time": "0:45", "supply": 16, "action": "Refinery" },
+      { "time": "1:27", "supply": 19, "action": "Reaper" },
+      { "time": "1:28", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:39", "supply": 20, "action": "Command Center [natural]" },
+      { "time": "1:47", "supply": 20, "action": "Supply Depot [wall]" },
+      { "time": "1:58", "supply": 21, "action": "Marine" },
+      { "time": "2:11", "supply": 23, "action": "Factory" },
+      { "time": "2:15", "supply": 23, "action": "Refinery" },
+      { "time": "2:21", "supply": 23, "action": "Barracks Reactor" },
+      { "time": "2:30", "action": "Reaper scout [check 3rd Hatchery timing]" },
+      { "time": "2:51", "supply": 26, "action": "Orbital Command [natural]" },
+      { "time": "2:57", "supply": 26, "action": "Starport" },
+      { "time": "3:02", "supply": 27, "action": "Factory onto Barracks Reactor" },
+      { "time": "3:04", "supply": 27, "action": "2x Hellion" },
+      { "time": "3:13", "supply": 32, "action": "Barracks Tech Lab [for Starport]" },
+      { "time": "3:23", "supply": 34, "action": "2x Hellion" },
+      { "time": "3:35", "action": "Starport onto Barracks Tech Lab" },
+      { "time": "3:39", "supply": 40, "action": "Banshee" },
+      { "time": "3:40", "supply": 40, "action": "Cloaking Field" },
+      { "time": "3:48", "supply": 47, "action": "2x Hellion" },
+      { "time": "4:05", "supply": 47, "action": "Supply Depot [3rd]" },
+      { "time": "4:21", "supply": 53, "action": "Command Center [3rd]" },
+      { "time": "4:29", "supply": 55, "action": "Banshee" },
+      { "time": "4:35", "action": "[Hellions deny creep and stay alive]" },
+      { "time": "4:48", "supply": 67, "action": "Refinery [natural 3rd gas]" },
+      { "time": "5:04", "supply": 72, "action": "Refinery [natural 4th gas]" },
+      { "time": "5:10", "action": "Armory" },
+      { "time": "5:20", "action": "Hyperflight Rotors" },
+      { "time": "5:35", "action": "Banshee scout [check Spire, Roach Warren, Lair tech]" },
+      {
+        "time": "5:50",
+        "decision": {
+          "1": {
+            "label": "Normal 3rd Hatchery / no heavy tech scouted [standard Cyclone-Hellion map control]",
+            "target": "tvz_battlemech_standard_setup"
+          },
+          "2": {
+            "label": "Roach Warren / Ravager pressure / Nydus signs scouted [defensive Cyclone-Banshee hold]",
+            "target": "tvz_battlemech_roach_ravager_defense"
+          },
+          "3": {
+            "label": "Fast Spire / Mutalisk or Corruptor signs scouted [Turret-Thor anti-air]",
+            "target": "tvz_battlemech_spire_air_response"
+          }
+        }
+      }
+    ]
+  },
+
+  "tvz_battlemech_standard_setup": {
+    "steps": [
+      { "time": "5:55", "action": "Factory [second]" },
+      { "time": "6:00", "action": "Factory [third]" },
+      { "time": "6:15", "action": "[land 3rd Command Center if safe]" },
+      { "time": "6:20", "action": "Factory Tech Lab [second Factory]" },
+      { "time": "6:25", "action": "Factory Tech Lab [third Factory]" },
+      { "time": "6:40", "action": "Cyclone" },
+      { "time": "6:45", "action": "Cyclone" },
+      { "time": "6:50", "action": "Terran Vehicle Weapons Level 1" },
+      { "time": "6:55", "action": "2x Hellion" },
+      { "time": "7:05", "action": "2x Hellion" },
+      { "time": "7:15", "action": "Command Center [4th]" },
+      { "time": "7:25", "action": "Sensor Tower [3rd]" },
+      { "time": "7:40", "action": "Factory [fourth]" },
+      { "time": "7:45", "action": "Factory [fifth]" },
+      { "time": "7:55", "action": "[poke edge of creep with Banshees spotting for Cyclone lock-ons]" },
+      {
+        "time": "8:00",
+        "decision": {
+          "1": {
+            "label": "Hydralisk Den / Lurker Den scouted [Liberator-Tank anti-Lurker transition]",
+            "target": "tvz_battlemech_lurker_transition"
+          },
+          "2": {
+            "label": "Infestation Pit / Swarm Host signs scouted [mobile counterattack response]",
+            "target": "tvz_battlemech_swarm_host_response"
+          },
+          "3": {
+            "label": "Zerg expanding greedily / weak anti-air scouted [battlemech pressure snowball]",
+            "target": "tvz_battlemech_pressure_snowball"
+          }
+        }
+      }
+    ]
+  },
+
+  "tvz_battlemech_roach_ravager_defense": {
+    "steps": [
+      { "time": "5:55", "action": "Factory Tech Lab [main Factory]" },
+      { "time": "6:00", "action": "Bunker [natural]" },
+      { "time": "6:05", "action": "Supply Depot [complete wall]" },
+      { "time": "6:15", "action": "Cyclone" },
+      { "time": "6:25", "action": "Banshee [defend Roaches]" },
+      { "time": "6:35", "action": "Siege Tank" },
+      { "time": "6:45", "action": "SCV pull [repair natural wall]" },
+      { "time": "6:55", "action": "[do not chase onto creep]" },
+      { "time": "7:05", "action": "Factory [second]" },
+      { "time": "7:10", "action": "Factory [third]" },
+      { "time": "7:25", "action": "Terran Vehicle Weapons Level 1" },
+      {
+        "time": "7:40",
+        "decision": {
+          "1": {
+            "label": "Roach/Ravager pressure held [retake map with Cyclone-Hellion]",
+            "target": "tvz_battlemech_standard_setup"
+          },
+          "2": {
+            "label": "Nydus Worm / main-base pressure continues [split home defense]",
+            "target": "tvz_battlemech_nydus_hold"
+          },
+          "3": {
+            "label": "Fast Lair tech behind pressure scouted [Banshee counter-map pressure]",
+            "target": "tvz_battlemech_pressure_snowball"
+          }
+        }
+      }
+    ]
+  },
+
+  "tvz_battlemech_spire_air_response": {
+    "steps": [
+      { "time": "5:55", "action": "Missile Turret [main mineral line]" },
+      { "time": "6:00", "action": "Missile Turret [natural mineral line]" },
+      { "time": "6:05", "action": "Viking" },
+      { "time": "6:10", "action": "Factory [second]" },
+      { "time": "6:15", "action": "Factory [third]" },
+      { "time": "6:25", "action": "Factory Tech Lab [main Factory]" },
+      { "time": "6:40", "action": "Thor" },
+      { "time": "6:50", "action": "Terran Vehicle Weapons Level 1" },
+      { "time": "7:00", "action": "Sensor Tower [main-to-3rd air path]" },
+      { "time": "7:15", "action": "Cyclone" },
+      { "time": "7:20", "action": "2x Hellion" },
+      { "time": "7:30", "action": "Command Center [4th]" },
+      { "time": "7:45", "action": "Missile Turret [3rd mineral line]" },
+      { "time": "8:00", "action": "[keep Banshees together and avoid Queen-Hydra fights]" },
+      { "time": "8:20", "action": "[transition to Thor Cyclone Hellion Banshee]" }
+    ]
+  },
+
+  "tvz_battlemech_nydus_hold": {
+    "steps": [
+      { "time": "7:45", "action": "Bunker [main]" },
+      { "time": "7:50", "action": "Cyclone [main]" },
+      { "time": "7:55", "action": "Marine [main edge spotter]" },
+      { "time": "8:00", "action": "Missile Turret [main edge]" },
+      { "time": "8:05", "action": "Siege Tank [between main and natural]" },
+      { "time": "8:15", "action": "[split Hellions to kill Nydus Worms]" },
+      { "time": "8:25", "action": "[keep Banshee over main for vision]" },
+      { "time": "8:45", "action": "Cyclone" },
+      { "time": "9:00", "action": "[when held, rejoin Cyclone-Hellion map control]" }
+    ]
+  },
+
+  "tvz_battlemech_lurker_transition": {
+    "steps": [
+      { "time": "8:05", "action": "Starport Reactor" },
+      { "time": "8:10", "action": "Liberator" },
+      { "time": "8:18", "action": "Liberator" },
+      { "time": "8:25", "action": "Starport Tech Lab [second Starport if added]" },
+      { "time": "8:30", "action": "Fusion Core" },
+      { "time": "8:45", "action": "Siege Tank" },
+      { "time": "8:55", "action": "Terran Vehicle Weapons Level 2" },
+      { "time": "9:05", "action": "Advanced Ballistics" },
+      { "time": "9:20", "action": "[deny outer bases instead of forcing into Lurker/Viper]" },
+      { "time": "9:40", "action": "[transition to Cyclone Hellion Liberator Tank]" }
+    ]
+  },
+
+  "tvz_battlemech_swarm_host_response": {
+    "steps": [
+      { "time": "8:05", "action": "[pull back from Locust wave]" },
+      { "time": "8:12", "action": "2x Hellion [counterattack group]" },
+      { "time": "8:15", "action": "Cyclone [counterattack group]" },
+      { "time": "8:25", "action": "Command Center [4th]" },
+      { "time": "8:35", "action": "Sensor Tower [Nydus path]" },
+      { "time": "8:45", "action": "2x Factory" },
+      { "time": "9:00", "action": "Raven [creep and Nydus utility]" },
+      { "time": "9:20", "action": "[attack opposite side after Locusts expire]" },
+      { "time": "9:35", "action": "Thor [anti-air support]" },
+      { "time": "9:50", "action": "[keep army mobile and avoid static Swarm Host zones]" }
+    ]
+  },
+
+  "tvz_battlemech_pressure_snowball": {
+    "steps": [
+      { "time": "8:05", "action": "[split Hellion run-bys while Cyclones poke front]" },
+      { "time": "8:10", "action": "Command Center [5th]" },
+      { "time": "8:20", "action": "2x Factory" },
+      { "time": "8:30", "action": "Terran Vehicle Weapons Level 2" },
+      { "time": "8:35", "action": "Terran Vehicle Plating Level 1" },
+      { "time": "8:45", "action": "Sensor Tower [4th]" },
+      { "time": "9:00", "action": "[deny 5th Hatchery and trade only off creep]" },
+      { "time": "9:15", "action": "Thor [if Mutalisks appear]" },
+      { "time": "9:25", "action": "Liberator [if Lurkers appear]" },
+      { "time": "9:40", "action": "[transition to Cyclone Hellion Banshee with Thor/Liberator support]" }
+    ]
+  }
+}
