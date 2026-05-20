@@ -38,6 +38,10 @@
           "2": {
             "label": "Early Second Gas [3 Reaper 2 Hellion shared core, common in TvT/TvZ]",
             "target": "early_second_gas_core"
+          },
+          "3": {
+            "label": "Early Second Gas One-Base Pressure [cloak banshee into tank push, mostly TvT]",
+            "target": "one_base_cloak_banshee_tank_push"
           }
         }
       }
@@ -261,6 +265,26 @@
       { "time": "5:37", "supply": 61, "action": "Stimpack" },
       { "time": "6:00", "supply": 74, "action": "Command Center [3rd]" },
       { "time": "6:45", "action": "[transition to marine-tank-raven with stronger raven count]" }
+    ]
+  },
+  "one_base_cloak_banshee_tank_push": {
+    "steps": [
+      { "time": "0:58", "supply": 17, "action": "Refinery [second]" },
+      { "time": "1:33", "supply": 19, "action": "Barracks Reactor" },
+      { "time": "1:40", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:41", "supply": 19, "action": "Factory" },
+      { "time": "1:42", "supply": 19, "action": "Supply Depot" },
+      { "time": "2:09", "supply": 23, "action": "Marine [continuous production]" },
+      { "time": "2:30", "supply": 24, "action": "Starport [same SCV as Factory]" },
+      { "time": "2:31", "supply": 24, "action": "Factory Tech Lab" },
+      { "time": "2:35", "supply": 26, "action": "Supply Depot [continuous all game]" },
+      { "time": "2:40", "supply": 27, "action": "Starport onto Factory Tech Lab" },
+      { "time": "3:00", "supply": 29, "action": "Banshee [continuous production]" },
+      { "time": "3:01", "supply": 29, "action": "Cloaking Field" },
+      { "time": "3:11", "supply": 30, "action": "SCV [cut at 16-17 workers]" },
+      { "time": "3:20", "supply": 35, "action": "Siege Tank [continuous production]" },
+      { "time": "3:50", "supply": 40, "action": "[send first Banshee only after Cloak is complete]" },
+      { "time": "5:00", "supply": 60, "action": "[push out with at least 3 Siege Tanks]" }
     ]
   },
   "proxy_3rax_reaper": {
