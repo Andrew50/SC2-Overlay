@@ -1,5 +1,5 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, screen, shell } from "electron";
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadInitialData } from "../src/core/loader";
@@ -241,6 +241,59 @@ function copyPathIfMissing(sourcePath: string, targetPath: string): void {
   cpSync(sourcePath, targetPath, { recursive: true });
 }
 
+function movePathToBackup(sourcePath: string, backupPath: string): void {
+  if (!existsSync(sourcePath)) {
+    return;
+  }
+  mkdirSync(path.dirname(backupPath), { recursive: true });
+  try {
+    renameSync(sourcePath, backupPath);
+  } catch {
+    cpSync(sourcePath, backupPath, { recursive: true });
+    rmSync(sourcePath, { recursive: true, force: true });
+  }
+}
+
+function syncDefaultsOnVersionChange(userDataRoot: string, bundledDefaultsRoot: string): void {
+  const syncVersionMarkerPath = path.join(userDataRoot, ".defaults-sync-version");
+  const currentVersion = app.getVersion();
+  const hasSyncedForCurrentVersion =
+    existsSync(syncVersionMarkerPath) &&
+    process.env.SC2_OVERLAY_DEFAULTS_SYNC_FORCE !== "1" &&
+    (() => {
+      try {
+        return readFileSync(syncVersionMarkerPath, "utf8").trim() === currentVersion;
+      } catch {
+        return false;
+      }
+    })();
+
+  if (hasSyncedForCurrentVersion) {
+    return;
+  }
+
+  const sourceConfigPath = path.join(bundledDefaultsRoot, "config.json");
+  const sourceBuildsPath = path.join(bundledDefaultsRoot, "builds");
+  const targetConfigPath = path.join(userDataRoot, "config.json");
+  const targetBuildsPath = path.join(userDataRoot, "builds");
+
+  const backupStamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupRoot = path.join(userDataRoot, "backups", `${currentVersion}_${backupStamp}`);
+
+  if (existsSync(targetConfigPath)) {
+    movePathToBackup(targetConfigPath, path.join(backupRoot, "config.json"));
+  }
+  if (existsSync(targetBuildsPath)) {
+    movePathToBackup(targetBuildsPath, path.join(backupRoot, "builds"));
+  }
+
+  copyPathIfMissing(sourceConfigPath, targetConfigPath);
+  copyPathIfMissing(sourceBuildsPath, targetBuildsPath);
+
+  mkdirSync(path.dirname(syncVersionMarkerPath), { recursive: true });
+  writeFileSync(syncVersionMarkerPath, currentVersion, "utf8");
+}
+
 function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
   const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
   const envSchemaRoot = process.env.SC2_OVERLAY_SCHEMA_ROOT?.trim();
@@ -257,6 +310,7 @@ function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
 
   const userDataRoot = resolvePackagedDataRoot();
   mkdirSync(userDataRoot, { recursive: true });
+  syncDefaultsOnVersionChange(userDataRoot, bundledDefaultsRoot);
   copyPathIfMissing(path.join(bundledDefaultsRoot, "config.json"), path.join(userDataRoot, "config.json"));
   copyPathIfMissing(path.join(bundledDefaultsRoot, "builds"), path.join(userDataRoot, "builds"));
   console.log(`Using runtime data root: ${userDataRoot}`);
