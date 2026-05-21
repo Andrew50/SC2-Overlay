@@ -319,10 +319,6 @@ function normalizeCompactBuild(
       if (index < steps.length - 1) {
         throw new Error(`Compact branch "${branchName}" in ${buildId} must end at the decision step`);
       }
-      if (buildSteps.length === 0) {
-        throw new Error(`Compact branch "${branchName}" in ${buildId} needs at least one action before decision`);
-      }
-
       nextDecisionId = `${branchName}__decision`;
       if (nodes[nextDecisionId]) {
         throw new Error(`Generated decision node collision: ${nextDecisionId}`);
