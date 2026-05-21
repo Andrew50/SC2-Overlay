@@ -1,157 +1,236 @@
 {
   "terran": {
-    "target": "opener_root"
+    "target": "initial_depot_core"
   },
 
-  "opener_root": {
+  "initial_depot_core": {
     "steps": [
+      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
       {
-        "time": "0:00",
+        "time": "0:24",
         "decision": {
           "1": {
-            "label": "TvZ ladder set [standard bio-mine, Banshee macro, mech, 3-Rax pressure]",
-            "target": "tvz_gate"
+            "label": "Pre-game fast-economy plan / opponent unlikely to punish [CC-first bio economy]",
+            "target": "cc_first_bio_tvp_byun_optional_after_depot"
           },
           "2": {
-            "label": "TvP ladder set [safe macro, active pressure, risky CC-first, proxy Marauder]",
-            "target": "tvp_gate"
+            "label": "Pre-game Barracks-first plan [standard/proxy Barracks set]",
+            "target": "barracks_first_location_gate"
           },
           "3": {
-            "label": "TvT and TvX pressure set [safe macro, Raven timing, one-base all-ins, proxy Reaper]",
-            "target": "tvt_gate"
+            "label": "Pre-game early-tech or one-base plan [gas-first tech/all-in set]",
+            "target": "gas_first_refinery_core"
           }
         }
       }
     ]
   },
 
-  "tvz_gate": {
+  "barracks_first_location_gate": {
     "steps": [
       {
-        "time": "0:00",
+        "time": "0:34",
         "decision": {
           "1": {
-            "label": "Standard TvZ macro Bio-Mine [Clem fast 3CC Hellion/Liberator]",
-            "target": "tvz_clem_fast3cc_hellion_liberator_bio_mine"
+            "label": "At-home Barracks placement [macro/pressure expand set]",
+            "target": "at_home_barracks_refinery_core"
           },
           "2": {
-            "label": "TvZ alternative macro tech [Banshee bio-tank or mech]",
-            "target": "tvz_alt_macro_gate"
-          },
-          "3": {
-            "label": "TvZ 3-Rax pressure [normal 3-Rax timing attack]",
-            "target": "tvz_3rax_pressure"
+            "label": "Proxy/hidden Barracks placement [2-Rax proxy pressure]",
+            "target": "proxy_2rax_pressure_core"
           }
         }
       }
     ]
   },
 
-  "tvz_alt_macro_gate": {
+  "at_home_barracks_refinery_core": {
+    "steps": [
+      { "time": "0:40", "supply": 15, "action": "Barracks" },
+      { "time": "0:43", "supply": 16, "action": "Refinery" },
+      {
+        "time": "0:50",
+        "decision": {
+          "1": {
+            "label": "Second Refinery before expansion [TvT two-gas Reaper Factory]",
+            "target": "tvt_two_gas_reaper_factory_core"
+          },
+          "2": {
+            "label": "Delayed second gas / natural expansion first [one-gas expand set]",
+            "target": "one_gas_expand_first_unit_gate"
+          }
+        }
+      }
+    ]
+  },
+
+  "one_gas_expand_first_unit_gate": {
     "steps": [
       {
-        "time": "0:00",
+        "time": "1:24",
         "decision": {
           "1": {
-            "label": "TvZ Banshee macro Bio-Tank [Clem fast 3CC Hellion/Banshee]",
-            "target": "tvz_clem_fast3cc_hellion_banshee_bio_tank"
+            "label": "First Barracks unit Marine / early Reactor follow-up [TvP Medivac-Cyclone pressure]",
+            "target": "tvp_clem_medivac_cyclone_pressure_after_core"
           },
           "2": {
-            "label": "TvZ Mech [6 Banshee first steps into tanks and factories]",
-            "target": "tvz_mech_6_banshee_first_steps"
+            "label": "First Barracks unit Reaper [Reaper-expand macro/pressure set]",
+            "target": "reaper_expand_core"
           }
         }
       }
     ]
   },
 
-  "tvp_gate": {
+  "reaper_expand_core": {
     "steps": [
+      { "time": "1:27", "supply": 19, "action": "Reaper" },
+      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:40", "supply": 20, "action": "Command Center" },
       {
-        "time": "0:00",
+        "time": "1:46",
         "decision": {
           "1": {
-            "label": "Safe Standard TvP 3-1-1 [Reaper expand into Tank/Raven, 3 Rax, third CC]",
-            "target": "tvp_safe_standard_3_1_1_raven_tank"
+            "label": "Early Engineering Bay after natural CC [TvZ +1 3-Rax pressure]",
+            "target": "tvz_3rax_pressure_after_reaper_expand"
           },
           "2": {
-            "label": "TvP Clem Medivac/Cyclone Pressure [active standard TvP opener]",
-            "target": "tvp_clem_medivac_cyclone_pressure"
-          },
-          "3": {
-            "label": "Risky or cheese TvP options [CC-first Bio or proxy Marauder]",
-            "target": "tvp_risky_cheese_gate"
+            "label": "Normal Depot/Factory follow-up after natural CC [Reaper-expand tech macro]",
+            "target": "normal_reaper_expand_tech_core"
           }
         }
       }
     ]
   },
 
-  "tvp_risky_cheese_gate": {
+  "normal_reaper_expand_tech_core": {
     "steps": [
+      { "time": "1:50", "supply": 20, "action": "Supply Depot" },
+      { "time": "2:00", "supply": 21, "action": "Marine" },
+      { "time": "2:10", "supply": 23, "action": "Factory" },
       {
-        "time": "0:00",
+        "time": "2:18",
         "decision": {
           "1": {
-            "label": "CC First Bio [old/pro-referenced risky TvP CC-first Bio; timing-incomplete]",
-            "target": "cc_first_bio_tvp_byun_optional"
+            "label": "Bunker/second gas safety [TvP 3-1-1 Tank/Raven macro]",
+            "target": "tvp_safe_standard_3_1_1_raven_tank_after_core"
           },
           "2": {
-            "label": "Proxy 2-Rax Marauder [Concussive bunker pressure, TvP cheese]",
-            "target": "proxy_2rax_marauder_tvp"
+            "label": "Third CC before heavy tech [TvZ fast 3CC Hellion macro]",
+            "target": "tvz_fast3cc_hellion_core"
           }
         }
       }
     ]
   },
 
-  "tvt_gate": {
+  "tvz_fast3cc_hellion_core": {
     "steps": [
+      { "time": "2:21", "supply": 24, "action": "Barracks Reactor" },
+      { "time": "2:40", "supply": 26, "action": "Command Center [third in main]" },
+      { "time": "2:50", "supply": 26, "action": "Orbital Command [natural]" },
       {
-        "time": "0:00",
+        "time": "2:55",
         "decision": {
           "1": {
-            "label": "Safe Standard TvT Factory Expand [2 Reaper, Cyclone/Tank, 2 Raven, 3CC]",
-            "target": "tvt_safe_factory_expand_3cc_raven_tank"
+            "label": "4-Hellion / first Starport unit Liberator [TvZ fast 3CC bio-mine]",
+            "target": "tvz_clem_fast3cc_hellion_liberator_bio_mine_after_core"
           },
           "2": {
-            "label": "TvT active pressure and one-base all-ins [Raven timing or air-control push]",
-            "target": "tvt_pressure_gate"
-          },
-          "3": {
-            "label": "Proxy 2-Rax Reaper [uThermal TvT cheese]",
-            "target": "proxy_2rax_reaper_tvt_uthermal"
+            "label": "6-Hellion / first Starport units Cloak Banshees [TvZ fast 3CC bio-tank]",
+            "target": "tvz_clem_fast3cc_hellion_banshee_bio_tank_after_core"
           }
         }
       }
     ]
   },
 
-  "tvt_pressure_gate": {
+  "tvt_two_gas_reaper_factory_core": {
     "steps": [
+      { "time": "0:53", "supply": 16, "action": "Refinery [second]" },
+      { "time": "1:27", "supply": 19, "action": "Reaper" },
+      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
+      { "time": "1:30", "supply": 20, "action": "Supply Depot" },
+      { "time": "1:42", "supply": 20, "action": "Factory" },
+      { "time": "1:58", "supply": 21, "action": "Reaper production [continue]" },
       {
-        "time": "0:00",
+        "time": "2:12",
         "decision": {
           "1": {
-            "label": "TvT FoxeR 3 Reaper 2 Hellion Raven [active Raven timing attack]",
-            "target": "tvt_foxer_3reaper_2hellion_raven"
+            "label": "Factory Tech Lab / Cyclone-Tank safety [TvT safe Factory Expand Raven 3CC]",
+            "target": "tvt_safe_factory_expand_3cc_raven_tank_after_core"
           },
           "2": {
-            "label": "TvT one-base Tank/Viking/Liberator [air-control all-in]",
-            "target": "one_base_tank_viking_liberator_push"
-          },
-          "3": {
-            "label": "TvX one-base Cloak Banshee/Tank [usable ladder all-in; not current pro-standard]",
-            "target": "one_base_cloak_banshee_tank_allin"
+            "label": "Earlier pressure with 3 Reaper/2 Hellion [TvT FoxeR Raven timing]",
+            "target": "tvt_foxer_3reaper_2hellion_raven_after_core"
           }
         }
       }
     ]
   },
 
-  "cc_first_bio_tvp_byun_optional": {
+  "proxy_2rax_pressure_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
+      { "time": "0:36", "supply": 14, "action": "Barracks [proxy]" },
+      { "time": "0:42", "supply": 14, "action": "Refinery" },
+      { "time": "0:56", "supply": 14, "action": "Barracks [proxy second]" },
+      {
+        "time": "1:20",
+        "decision": {
+          "1": {
+            "label": "Tech Labs first / Concussive Shells [TvP proxy 2-Rax Marauder]",
+            "target": "proxy_2rax_marauder_tvp_after_core"
+          },
+          "2": {
+            "label": "Reaper first / second gas follow-up [TvT proxy 2-Rax Reaper]",
+            "target": "proxy_2rax_reaper_tvt_uthermal_after_core"
+          }
+        }
+      }
+    ]
+  },
+
+  "gas_first_refinery_core": {
+    "steps": [
+      { "time": "0:28", "supply": 15, "action": "Refinery" },
+      { "time": "0:45", "supply": 16, "action": "Barracks" },
+      {
+        "time": "0:54",
+        "decision": {
+          "1": {
+            "label": "No immediate second gas / expand from gas-first [TvZ gas-first mech]",
+            "target": "tvz_mech_6_banshee_first_steps_after_core"
+          },
+          "2": {
+            "label": "Immediate second gas / no natural before tech [one-base 1-1-1 all-in set]",
+            "target": "one_base_two_gas_111_core"
+          }
+        }
+      }
+    ]
+  },
+
+  "one_base_two_gas_111_core": {
+    "steps": [
+      { "time": "0:57", "supply": 16, "action": "Refinery [second]" },
+      {
+        "time": "1:30",
+        "decision": {
+          "1": {
+            "label": "Factory before Barracks add-on [Tank/Viking/Liberator air-control all-in]",
+            "target": "one_base_tank_viking_liberator_push_after_core"
+          },
+          "2": {
+            "label": "Fast Barracks Reactor into Cloak [Cloak Banshee/Tank all-in]",
+            "target": "one_base_cloak_banshee_tank_allin_after_core"
+          }
+        }
+      }
+    ]
+  },
+
+  "cc_first_bio_tvp_byun_optional_after_depot": {
+    "steps": [
       { "time": "1:00", "supply": 17, "action": "Command Center" },
       { "time": "1:15", "supply": 18, "action": "Barracks" },
       { "time": "1:20", "supply": 19, "action": "Refinery" },
@@ -181,20 +260,8 @@
     ]
   },
 
-  "tvz_clem_fast3cc_hellion_liberator_bio_mine": {
+  "tvz_clem_fast3cc_hellion_liberator_bio_mine_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
-      { "time": "0:42", "supply": 16, "action": "Barracks [builder scouts]" },
-      { "time": "0:43", "supply": 16, "action": "Refinery" },
-      { "time": "1:27", "supply": 19, "action": "Reaper" },
-      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:39", "supply": 20, "action": "Command Center" },
-      { "time": "1:47", "supply": 20, "action": "Supply Depot [finish wall]" },
-      { "time": "1:59", "supply": 21, "action": "Marine" },
-      { "time": "2:10", "supply": 23, "action": "Factory" },
-      { "time": "2:21", "supply": 24, "action": "Barracks Reactor" },
-      { "time": "2:41", "supply": 26, "action": "Command Center [third in main]" },
-      { "time": "2:51", "supply": 26, "action": "Orbital Command [natural]" },
       { "time": "2:59", "supply": 27, "action": "Starport" },
       { "time": "3:03", "supply": 27, "action": "Refinery" },
       { "time": "3:10", "supply": 28, "action": "Hellion production [build up to 4]" },
@@ -227,20 +294,8 @@
     ]
   },
 
-  "tvz_clem_fast3cc_hellion_banshee_bio_tank": {
+  "tvz_clem_fast3cc_hellion_banshee_bio_tank_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
-      { "time": "0:42", "supply": 16, "action": "Barracks [builder scouts]" },
-      { "time": "0:43", "supply": 16, "action": "Refinery" },
-      { "time": "1:27", "supply": 19, "action": "Reaper" },
-      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:38", "supply": 20, "action": "Command Center" },
-      { "time": "1:47", "supply": 20, "action": "Supply Depot [finish wall]" },
-      { "time": "1:59", "supply": 21, "action": "Marine" },
-      { "time": "2:12", "supply": 23, "action": "Factory" },
-      { "time": "2:21", "supply": 24, "action": "Barracks Reactor" },
-      { "time": "2:39", "supply": 25, "action": "Command Center [third in main]" },
-      { "time": "2:49", "supply": 26, "action": "Orbital Command [natural]" },
       { "time": "3:00", "supply": 28, "action": "Hellion production [build up to 6]" },
       { "time": "3:09", "supply": 32, "action": "Starport" },
       { "time": "3:13", "supply": 32, "action": "Refinery" },
@@ -268,11 +323,8 @@
     ]
   },
 
-  "tvz_mech_6_banshee_first_steps": {
+  "tvz_mech_6_banshee_first_steps_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:27", "supply": 15, "action": "Refinery" },
-      { "time": "0:44", "supply": 16, "action": "Barracks" },
       { "time": "1:31", "supply": 20, "action": "Reaper" },
       { "time": "1:45", "supply": 20, "action": "Command Center" },
       { "time": "1:52", "supply": 21, "action": "Factory" },
@@ -306,14 +358,8 @@
     ]
   },
 
-  "tvz_3rax_pressure": {
+  "tvz_3rax_pressure_after_reaper_expand": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:39", "supply": 15, "action": "Barracks" },
-      { "time": "0:43", "supply": 16, "action": "Refinery" },
-      { "time": "1:26", "supply": 19, "action": "Reaper" },
-      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:39", "supply": 20, "action": "Command Center" },
       { "time": "1:48", "supply": 20, "action": "Engineering Bay" },
       { "time": "1:58", "supply": 21, "action": "Barracks Reactor" },
       { "time": "2:02", "supply": 21, "action": "Supply Depot" },
@@ -345,17 +391,8 @@
     ]
   },
 
-  "tvp_safe_standard_3_1_1_raven_tank": {
+  "tvp_safe_standard_3_1_1_raven_tank_after_core": {
     "steps": [
-      { "time": "0:16", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:39", "supply": 15, "action": "Barracks" },
-      { "time": "0:44", "supply": 16, "action": "Refinery" },
-      { "time": "1:30", "supply": 19, "action": "Reaper" },
-      { "time": "1:30", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:42", "supply": 20, "action": "Command Center" },
-      { "time": "1:51", "supply": 20, "action": "Supply Depot" },
-      { "time": "2:02", "supply": 21, "action": "Marine" },
-      { "time": "2:09", "supply": 22, "action": "Factory" },
       { "time": "2:19", "supply": 23, "action": "Bunker" },
       { "time": "2:19", "supply": 23, "action": "Marine" },
       { "time": "2:27", "supply": 24, "action": "Refinery" },
@@ -391,11 +428,8 @@
     ]
   },
 
-  "tvp_clem_medivac_cyclone_pressure": {
+  "tvp_clem_medivac_cyclone_pressure_after_core": {
     "steps": [
-      { "time": "0:16", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:40", "supply": 15, "action": "Barracks" },
-      { "time": "0:42", "supply": 15, "action": "Refinery" },
       { "time": "1:26", "supply": 19, "action": "Marine" },
       { "time": "1:27", "supply": 19, "action": "Orbital Command" },
       { "time": "1:38", "supply": 20, "action": "Command Center" },
@@ -433,12 +467,8 @@
     ]
   },
 
-  "proxy_2rax_marauder_tvp": {
+  "proxy_2rax_marauder_tvp_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:39", "supply": 15, "action": "Barracks [proxy or hidden]" },
-      { "time": "0:43", "supply": 15, "action": "Refinery" },
-      { "time": "0:57", "supply": 15, "action": "Barracks [proxy or hidden]" },
       { "time": "1:27", "supply": 17, "action": "Barracks Tech Lab" },
       { "time": "1:27", "supply": 17, "action": "Orbital Command" },
       { "time": "1:35", "supply": 17, "action": "Supply Depot" },
@@ -459,17 +489,8 @@
     ]
   },
 
-  "tvt_safe_factory_expand_3cc_raven_tank": {
+  "tvt_safe_factory_expand_3cc_raven_tank_after_core": {
     "steps": [
-      { "time": "0:16", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:39", "supply": 15, "action": "Barracks" },
-      { "time": "0:43", "supply": 16, "action": "Refinery" },
-      { "time": "0:53", "supply": 16, "action": "Refinery [second]" },
-      { "time": "1:26", "supply": 19, "action": "Reaper" },
-      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:29", "supply": 19, "action": "Supply Depot" },
-      { "time": "1:43", "supply": 20, "action": "Factory" },
-      { "time": "1:58", "supply": 21, "action": "Reaper" },
       { "time": "2:25", "supply": 24, "action": "Command Center [natural]" },
       { "time": "2:27", "supply": 24, "action": "Factory Tech Lab" },
       { "time": "2:31", "supply": 25, "action": "Barracks Reactor" },
@@ -503,16 +524,8 @@
     ]
   },
 
-  "tvt_foxer_3reaper_2hellion_raven": {
+  "tvt_foxer_3reaper_2hellion_raven_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot [ramp]" },
-      { "time": "0:40", "supply": 16, "action": "Barracks" },
-      { "time": "0:42", "supply": 16, "action": "Refinery" },
-      { "time": "0:52", "supply": 17, "action": "Refinery" },
-      { "time": "1:27", "supply": 19, "action": "Reaper production [build up to 3]" },
-      { "time": "1:27", "supply": 19, "action": "Orbital Command" },
-      { "time": "1:30", "supply": 20, "action": "Supply Depot" },
-      { "time": "1:40", "supply": 20, "action": "Factory" },
       { "time": "2:16", "supply": 23, "action": "Command Center" },
       { "time": "2:25", "supply": 24, "action": "2x Hellion" },
       { "time": "2:40", "supply": 28, "action": "Supply Depot [spot Medivac drops]" },
@@ -541,12 +554,8 @@
     ]
   },
 
-  "one_base_tank_viking_liberator_push": {
+  "one_base_tank_viking_liberator_push_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:29", "supply": 15, "action": "Refinery" },
-      { "time": "0:45", "supply": 16, "action": "Barracks" },
-      { "time": "0:56", "supply": 16, "action": "Refinery" },
       { "time": "1:32", "supply": 19, "action": "Orbital Command" },
       { "time": "1:33", "supply": 19, "action": "Factory" },
       { "time": "1:36", "supply": 19, "action": "Marine" },
@@ -574,12 +583,8 @@
     ]
   },
 
-  "proxy_2rax_reaper_tvt_uthermal": {
+  "proxy_2rax_reaper_tvt_uthermal_after_core": {
     "steps": [
-      { "time": "0:15", "supply": 13, "action": "Supply Depot" },
-      { "time": "0:35", "supply": 14, "action": "Barracks [proxy]" },
-      { "time": "0:41", "supply": 14, "action": "Refinery" },
-      { "time": "0:55", "supply": 14, "action": "Barracks [proxy second]" },
       { "time": "1:23", "supply": 17, "action": "Reaper" },
       { "time": "1:26", "supply": 17, "action": "Orbital Command" },
       { "time": "1:34", "supply": 17, "action": "Refinery" },
@@ -595,12 +600,8 @@
     ]
   },
 
-  "one_base_cloak_banshee_tank_allin": {
+  "one_base_cloak_banshee_tank_allin_after_core": {
     "steps": [
-      { "time": "0:17", "supply": 14, "action": "Supply Depot" },
-      { "time": "0:29", "supply": 15, "action": "Refinery" },
-      { "time": "0:45", "supply": 16, "action": "Barracks" },
-      { "time": "0:58", "supply": 17, "action": "Refinery" },
       { "time": "1:33", "supply": 19, "action": "Barracks Reactor" },
       { "time": "1:40", "supply": 19, "action": "Orbital Command" },
       { "time": "1:41", "supply": 19, "action": "Factory" },

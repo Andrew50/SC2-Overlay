@@ -15,6 +15,8 @@ const IMMINENT_ACTION_WARNING_SECONDS = 5;
 const COUNTDOWN_DURATION_SECONDS = 3;
 const COUNTDOWN_JUMP_SECONDS = 5;
 const TICK_INTERVAL_MS = 100;
+const DECISION_INPUT_BUFFER_MS = 350;
+const ACTION_SELECTION_EPSILON_SECONDS = 0.001;
 const DEBUG_NAVIGATION = true;
 
 interface AppState {
@@ -33,9 +35,14 @@ interface AppState {
   timeoutContextKey?: string;
   timeoutStartedAtMs?: number;
   timeoutDurationMs?: number;
-  pendingDecisionChoice?: DecisionChoice["key"];
+  pendingDecisionQueue: DecisionChoice["key"][];
+  decisionInputBlockedUntilMs?: number;
+  lastQueuedChooseBranch?: DecisionChoice["key"];
+  lastQueuedChooseAtMs?: number;
   rememberedDecisionChoices: Record<string, DecisionChoice["key"]>;
   jumpHistory: JumpHistoryEntry[];
+  debugInputSequence: number;
+  lastActionAtMsBySource: Partial<Record<string, number>>;
 }
 
 interface JumpHistoryEntry {
@@ -43,7 +50,7 @@ interface JumpHistoryEntry {
   stepIndex: number;
   timerSeconds: number;
   currentBranchLabel: string;
-  pendingDecisionChoice?: DecisionChoice["key"];
+  pendingDecisionQueue: DecisionChoice["key"][];
   rememberedDecisionChoices: Record<string, DecisionChoice["key"]>;
   crossedDecisionNodeIds?: string[];
   decisionNodeIdsToClearOnUndo?: string[];
@@ -75,6 +82,12 @@ interface SelectionQueueItem {
 }
 
 type QueueItem = BuildQueueItem | SelectionQueueItem;
+
+interface ResolvedBuildStepRef {
+  nodeId: string;
+  stepIndex: number;
+  timeSeconds: number;
+}
 
 const els = {
   timerValue: document.querySelector<HTMLElement>("#timer-value"),
@@ -203,6 +216,11 @@ function debugNavigation(
   window.overlayApi.debugLog(`[overlay-nav] ${message}`, details);
 }
 
+function nextDebugInputSequence(state: AppState): number {
+  state.debugInputSequence += 1;
+  return state.debugInputSequence;
+}
+
 function getNavigationSnapshot(state: AppState): Record<string, unknown> {
   const node = getCurrentNode(state);
   return {
@@ -211,10 +229,27 @@ function getNavigationSnapshot(state: AppState): Record<string, unknown> {
     stepIndex: state.currentStepIndex,
     timerSeconds: Number(state.timerSeconds.toFixed(3)),
     branchLabel: state.currentBranchLabel,
-    pendingDecisionChoice: state.pendingDecisionChoice ?? null,
+    pendingDecisionChoice: state.pendingDecisionQueue[0] ?? null,
+    pendingDecisionQueue: [...state.pendingDecisionQueue],
     rememberedDecisionChoices: { ...state.rememberedDecisionChoices },
     jumpHistoryDepth: state.jumpHistory.length
   };
+}
+
+function getPendingDecisionChoice(state: AppState): DecisionChoice["key"] | undefined {
+  return state.pendingDecisionQueue[0];
+}
+
+function enqueuePendingDecisionChoice(state: AppState, branch: DecisionChoice["key"]): void {
+  state.pendingDecisionQueue.push(branch);
+}
+
+function consumePendingDecisionChoice(state: AppState): DecisionChoice["key"] | undefined {
+  return state.pendingDecisionQueue.shift();
+}
+
+function clearPendingDecisionQueue(state: AppState): void {
+  state.pendingDecisionQueue = [];
 }
 
 function getDecisionChoices(node: DecisionNodeEntry): DecisionChoice[] {
@@ -226,6 +261,14 @@ function getDecisionChoices(node: DecisionNodeEntry): DecisionChoice[] {
     choices.push({ key: "right", label: node.right.label, target: node.right.target });
   }
   return choices;
+}
+
+function describeDecisionChoices(node: DecisionNodeEntry): Array<Record<string, unknown>> {
+  return getDecisionChoices(node).map((choice) => ({
+    key: choice.key,
+    label: choice.label,
+    target: choice.target ?? null
+  }));
 }
 
 function getRememberedDecisionChoice(
@@ -240,24 +283,186 @@ function getRememberedDecisionChoice(
   return getDecisionChoices(node).find((choice) => choice.key === rememberedKey && Boolean(choice.target));
 }
 
+function getFarthestResolvedBranchLabel(state: AppState): string {
+  if (!state.activeGraph) {
+    return formatRaceLabel(state.selectedPlayerRace);
+  }
+
+  const visited = new Set<string>();
+  let nodeId: string | undefined = state.activeGraph.rootNodeId;
+  let lastResolvedLabel = formatRaceLabel(state.selectedPlayerRace);
+
+  while (nodeId && !visited.has(nodeId)) {
+    visited.add(nodeId);
+    const node: BuildNode | undefined = state.activeGraph.nodes[nodeId];
+    if (!node) {
+      break;
+    }
+
+    if (node.type === "decision") {
+      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
+      if (!rememberedChoice?.target) {
+        break;
+      }
+      lastResolvedLabel = rememberedChoice.label;
+      nodeId = rememberedChoice.target;
+      continue;
+    }
+
+    nodeId = node.next;
+  }
+
+  return lastResolvedLabel;
+}
+
+function getResolvedBuildTimeline(state: AppState): ResolvedBuildStepRef[] {
+  if (!state.activeGraph) {
+    return [];
+  }
+
+  const visited = new Set<string>();
+  const timeline: ResolvedBuildStepRef[] = [];
+  let nodeId: string | undefined = state.activeGraph.rootNodeId;
+
+  while (nodeId && !visited.has(nodeId)) {
+    visited.add(nodeId);
+    const node: BuildNode | undefined = state.activeGraph.nodes[nodeId];
+    if (!node) {
+      break;
+    }
+
+    if (node.type === "decision") {
+      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
+      if (!rememberedChoice?.target) {
+        break;
+      }
+      nodeId = rememberedChoice.target;
+      continue;
+    }
+
+    for (let stepIndex = 0; stepIndex < node.steps.length; stepIndex += 1) {
+      timeline.push({
+        nodeId,
+        stepIndex,
+        timeSeconds: stepTimeSeconds(node.steps[stepIndex]?.time)
+      });
+    }
+    nodeId = node.next;
+  }
+
+  return timeline;
+}
+
 function getTraversalDecisionChoice(
   state: AppState,
   nodeId: string,
   node: DecisionNodeEntry,
-  useRememberedChoices: boolean
-): DecisionChoice | undefined {
-  if (state.pendingDecisionChoice) {
-    const pendingChoice = getDecisionChoices(node).find(
-      (choice) => choice.key === state.pendingDecisionChoice && Boolean(choice.target)
-    );
-    if (pendingChoice) {
-      return pendingChoice;
-    }
-  }
+  useRememberedChoices: boolean,
+  allowPendingChoice = true
+): { choice?: DecisionChoice; source: "pending" | "remembered" | "none" } {
+  void allowPendingChoice;
   if (!useRememberedChoices) {
+    return { source: "none" };
+  }
+  const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
+  if (rememberedChoice) {
+    debugNavigation("getTraversalDecisionChoice using remembered decision choice", {
+      nodeId,
+      rememberedKey: rememberedChoice.key,
+      rememberedLabel: rememberedChoice.label,
+      rememberedTarget: rememberedChoice.target
+    });
+    return { choice: rememberedChoice, source: "remembered" };
+  }
+  return { source: "none" };
+}
+
+function findNextUnresolvedDecisionNode(
+  state: AppState
+): { nodeId: string; node: DecisionNodeEntry } | undefined {
+  if (!state.activeGraph || !state.currentNodeId) {
     return undefined;
   }
-  return getRememberedDecisionChoice(state, nodeId, node);
+
+  const visited = new Set<string>();
+  let nodeId: string | undefined = state.currentNodeId;
+  let skipCurrentBuildNode = true;
+
+  while (nodeId && !visited.has(nodeId)) {
+    visited.add(nodeId);
+    const node: BuildNode | undefined = state.activeGraph.nodes[nodeId];
+    if (!node) {
+      return undefined;
+    }
+
+    if (node.type === "decision") {
+      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
+      if (!rememberedChoice?.target) {
+        return { nodeId, node };
+      }
+      nodeId = rememberedChoice.target;
+      skipCurrentBuildNode = false;
+      continue;
+    }
+
+    if (skipCurrentBuildNode) {
+      nodeId = node.next;
+      skipCurrentBuildNode = false;
+      continue;
+    }
+
+    nodeId = node.next;
+  }
+
+  return undefined;
+}
+
+function resolveUpcomingDecisionChoice(
+  state: AppState,
+  branch: DecisionChoice["key"],
+  source: string,
+  inputSeq: number
+): boolean {
+  const upcomingDecision = findNextUnresolvedDecisionNode(state);
+  if (!upcomingDecision) {
+    debugNavigation("resolveUpcomingDecisionChoice ignored; no unresolved future decision", {
+      inputSeq,
+      source,
+      requestedBranch: branch,
+      ...getNavigationSnapshot(state)
+    });
+    return false;
+  }
+
+  const picked = getDecisionChoices(upcomingDecision.node).find(
+    (choice) => choice.key === branch && Boolean(choice.target)
+  );
+  if (!picked?.target) {
+    debugNavigation("resolveUpcomingDecisionChoice ignored; branch invalid for upcoming decision", {
+      inputSeq,
+      source,
+      requestedBranch: branch,
+      decisionNodeId: upcomingDecision.nodeId,
+      choices: describeDecisionChoices(upcomingDecision.node)
+    });
+    return false;
+  }
+
+  state.rememberedDecisionChoices[upcomingDecision.nodeId] = branch;
+  state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
+  debugNavigation("resolveUpcomingDecisionChoice applied immediately", {
+    inputSeq,
+    source,
+    requestedBranch: branch,
+    decisionNodeId: upcomingDecision.nodeId,
+    chosenLabel: picked.label,
+    chosenTarget: picked.target,
+    blockedUntilMs: state.decisionInputBlockedUntilMs,
+    rememberedAfter: { ...state.rememberedDecisionChoices }
+  });
+  alignProgressToGameTime(state);
+  render(state);
+  return true;
 }
 
 function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
@@ -350,7 +555,7 @@ function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
   state.timerPaused = false;
   state.timerStarted = true;
   state.currentBranchLabel = formatRaceLabel(option.playerRace);
-  state.pendingDecisionChoice = undefined;
+  clearPendingDecisionQueue(state);
   state.rememberedDecisionChoices = {};
   state.jumpHistory = [];
   clearBranchAutoSelect(state);
@@ -380,7 +585,10 @@ function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "righ
     nodeId: state.currentNodeId,
     requestedBranch: branch,
     targetNodeId: picked.target,
-    label: picked.label
+    label: picked.label,
+    rememberedBefore: { ...state.rememberedDecisionChoices },
+    pendingBefore: getPendingDecisionChoice(state) ?? null,
+    pendingQueueBefore: [...state.pendingDecisionQueue]
   });
   state.rememberedDecisionChoices[state.currentNodeId] = branch;
   state.currentBranchLabel = picked.label;
@@ -388,7 +596,14 @@ function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "righ
   state.currentStepIndex = 0;
   state.currentActionKey = undefined;
   state.currentActionRangeStartSeconds = state.timerSeconds;
-  state.pendingDecisionChoice = undefined;
+  state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
+  debugNavigation("chooseDecisionBranch state updated", {
+    newNodeId: state.currentNodeId,
+    blockedUntilMs: state.decisionInputBlockedUntilMs,
+    rememberedAfter: { ...state.rememberedDecisionChoices },
+    pendingAfter: getPendingDecisionChoice(state) ?? null,
+    pendingQueueAfter: [...state.pendingDecisionQueue]
+  });
   clearBranchAutoSelect(state);
   alignProgressToGameTime(state);
   render(state);
@@ -405,7 +620,10 @@ function resetStateToStart(state: AppState): void {
   state.timerPaused = false;
   state.timerStarted = false;
   state.currentBranchLabel = formatRaceLabel();
-  state.pendingDecisionChoice = undefined;
+  clearPendingDecisionQueue(state);
+  state.decisionInputBlockedUntilMs = undefined;
+  state.lastQueuedChooseBranch = undefined;
+  state.lastQueuedChooseAtMs = undefined;
   state.rememberedDecisionChoices = {};
   state.jumpHistory = [];
   clearBranchAutoSelect(state);
@@ -438,6 +656,7 @@ function alignProgressToGameTime(
   let nodeId: string | undefined = state.activeGraph.rootNodeId;
   let previousTimedAnchorSeconds = 0;
   let lastBranchLabel = formatRaceLabel(state.selectedPlayerRace);
+  let allowPendingChoiceForTraversal = true;
   while (nodeId && !visited.has(nodeId)) {
     visited.add(nodeId);
     const node: BuildNode | undefined = state.activeGraph.nodes[nodeId];
@@ -447,9 +666,40 @@ function alignProgressToGameTime(
       return;
     }
     if (node.type === "decision") {
-      const choice = getTraversalDecisionChoice(state, nodeId, node, useRememberedChoices);
+      const resolution = getTraversalDecisionChoice(
+        state,
+        nodeId,
+        node,
+        useRememberedChoices,
+        allowPendingChoiceForTraversal
+      );
+      const choice = resolution.choice;
       if (choice?.target) {
+        if (resolution.source === "pending") {
+          // A queued choose input should only affect one decision boundary.
+          // Persist it as a remembered choice on that node, then consume it.
+          state.rememberedDecisionChoices[nodeId] = choice.key;
+          consumePendingDecisionChoice(state);
+          allowPendingChoiceForTraversal = false;
+          debugNavigation("alignProgressToGameTime consumed pending decision choice", {
+            nodeId,
+            consumedKey: choice.key,
+            consumedLabel: choice.label,
+            consumedTarget: choice.target,
+            pendingQueueAfterConsume: [...state.pendingDecisionQueue]
+          });
+        }
         lastBranchLabel = choice.label;
+        debugNavigation("alignProgressToGameTime traversing decision node", {
+          nodeId,
+          chosenKey: choice.key,
+          chosenLabel: choice.label,
+          chosenTarget: choice.target,
+          choiceSource: resolution.source,
+          pendingDecisionChoice: getPendingDecisionChoice(state) ?? null,
+          pendingDecisionQueue: [...state.pendingDecisionQueue],
+          useRememberedChoices
+        });
         nodeId = choice.target;
         continue;
       }
@@ -461,6 +711,14 @@ function alignProgressToGameTime(
       state.currentActionKey = undefined;
       state.currentActionRangeStartSeconds = previousTimedAnchorSeconds;
       state.currentBranchLabel = lastBranchLabel;
+      debugNavigation("alignProgressToGameTime stopped at unresolved decision", {
+        nodeId,
+        useRememberedChoices,
+        pendingDecisionChoice: getPendingDecisionChoice(state) ?? null,
+        pendingDecisionQueue: [...state.pendingDecisionQueue],
+        rememberedDecisionChoices: { ...state.rememberedDecisionChoices },
+        choices: describeDecisionChoices(node)
+      });
       return;
     }
 
@@ -548,6 +806,7 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
   let nodeId = activeNodeId;
   let stepIndex = activeStepIndex;
   let previousBuildStepSeconds = state.currentActionRangeStartSeconds ?? 0;
+  let allowPendingChoiceForTraversal = true;
 
   if (activeNode?.type === "build" && activeStepIndex > 0) {
     const previousStep = activeNode.steps[activeStepIndex - 1];
@@ -600,9 +859,18 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
       continue;
     }
 
-    const choice = getTraversalDecisionChoice(state, nodeId, node, true);
-    if (choice?.target) {
-      nodeId = choice.target;
+    const resolvedChoice = getTraversalDecisionChoice(
+      state,
+      nodeId,
+      node,
+      true,
+      allowPendingChoiceForTraversal
+    );
+    if (resolvedChoice.source === "pending") {
+      allowPendingChoiceForTraversal = false;
+    }
+    if (resolvedChoice.choice?.target) {
+      nodeId = resolvedChoice.choice.target;
       stepIndex = 0;
       continue;
     }
@@ -736,6 +1004,7 @@ function render(state: AppState): void {
   const actionQueue = assertElement(els.actionQueue, "action-queue");
   const upcomingDecisions = assertElement(els.upcomingDecisions, "upcoming-decisions");
   const decisionContent = assertElement(els.decisionContent, "decision-content");
+  state.currentBranchLabel = getFarthestResolvedBranchLabel(state);
   timerValue.textContent = formatTimerDisplay(state.timerSeconds);
   branchValue.textContent = state.currentBranchLabel;
   els.setupControls?.classList.toggle("is-hidden", state.timerStarted);
@@ -752,16 +1021,6 @@ function render(state: AppState): void {
 
   const node = getCurrentNode(state);
   if (node?.type === "decision") {
-    if (state.pendingDecisionChoice) {
-      const choices = getDecisionChoices(node);
-      const forcedChoice = choices.find(
-        (choice) => choice.key === state.pendingDecisionChoice && Boolean(choice.target)
-      );
-      if (forcedChoice) {
-        chooseDecisionBranch(state, forcedChoice.key);
-        return;
-      }
-    }
     setActionQueueHtml(actionQueue, renderSelectionRows(state, getDecisionChoices(node)));
     maybeArmDecisionTimeout(state);
     return;
@@ -801,7 +1060,8 @@ function advanceToNextBuildItem(state: AppState): string[] {
   if (node.type === "build") {
     nextNodeId = node.next;
   } else {
-    const choice = getTraversalDecisionChoice(state, state.currentNodeId, node, true);
+    const resolution = getTraversalDecisionChoice(state, state.currentNodeId, node, true, true);
+    const choice = resolution.choice;
     if (!choice?.target) {
       if (node.time) {
         state.timerSeconds = toSeconds(node.time);
@@ -815,16 +1075,17 @@ function advanceToNextBuildItem(state: AppState): string[] {
     crossedDecisionNodeIds.push(state.currentNodeId);
     state.rememberedDecisionChoices[state.currentNodeId] = choice.key;
     state.currentBranchLabel = choice.label;
-    state.pendingDecisionChoice = undefined;
     nextNodeId = choice.target;
     debugNavigation("jumpNext crossed decision", {
       decisionNodeId: state.currentNodeId,
       chosenLabel: choice.label,
-      targetNodeId: choice.target
+      targetNodeId: choice.target,
+      choiceSource: resolution.source
     });
   }
 
   const visited = new Set<string>();
+  let allowPendingChoiceForTraversal = true;
 
   while (nextNodeId && !visited.has(nextNodeId)) {
     visited.add(nextNodeId);
@@ -841,17 +1102,27 @@ function advanceToNextBuildItem(state: AppState): string[] {
     state.currentStepIndex = 0;
 
     if (nextNode.type === "decision") {
-      const choice = getTraversalDecisionChoice(state, nextNodeId, nextNode, true);
+      const resolution = getTraversalDecisionChoice(
+        state,
+        nextNodeId,
+        nextNode,
+        true,
+        allowPendingChoiceForTraversal
+      );
+      const choice = resolution.choice;
+      if (resolution.source === "pending") {
+        allowPendingChoiceForTraversal = false;
+      }
       if (choice?.target) {
         crossedDecisionNodeIds.push(nextNodeId);
         state.rememberedDecisionChoices[nextNodeId] = choice.key;
         state.currentBranchLabel = choice.label;
-        state.pendingDecisionChoice = undefined;
         nextNodeId = choice.target;
         debugNavigation("jumpNext auto-traversed decision", {
           decisionNodeId: crossedDecisionNodeIds[crossedDecisionNodeIds.length - 1],
           chosenLabel: choice.label,
-          targetNodeId: choice.target
+          targetNodeId: choice.target,
+          choiceSource: resolution.source
         });
         continue;
       }
@@ -895,32 +1166,52 @@ function jumpBySeconds(state: AppState, deltaSeconds: number): void {
 
 function jumpToPreviousBuildItem(state: AppState): void {
   debugNavigation("jumpPrevious start", getNavigationSnapshot(state));
-  const previous = state.jumpHistory.pop();
-  if (!previous) {
-    debugNavigation("jumpPrevious no-op; history empty", getNavigationSnapshot(state));
+  const timeline = getResolvedBuildTimeline(state);
+  if (timeline.length === 0) {
+    debugNavigation("jumpPrevious no-op; resolved timeline empty", getNavigationSnapshot(state));
     return;
   }
-  state.currentNodeId = previous.nodeId;
-  state.currentStepIndex = previous.stepIndex;
-  state.timerSeconds = previous.timerSeconds;
-  state.currentBranchLabel = previous.currentBranchLabel;
-  state.pendingDecisionChoice = previous.pendingDecisionChoice;
-  state.rememberedDecisionChoices = { ...previous.rememberedDecisionChoices };
-  const crossedDecisionNodeIds = previous.crossedDecisionNodeIds ?? [];
-  const decisionNodeIdsToClearOnUndo = previous.decisionNodeIdsToClearOnUndo ?? [];
-  for (const decisionNodeId of previous.decisionNodeIdsToClearOnUndo ?? []) {
-    delete state.rememberedDecisionChoices[decisionNodeId];
+
+  let targetIndex = timeline.findIndex(
+    (entry) => entry.nodeId === state.currentNodeId && entry.stepIndex === state.currentStepIndex
+  );
+  if (targetIndex >= 0) {
+    targetIndex -= 1;
+  } else {
+    targetIndex = -1;
+    for (let index = 0; index < timeline.length; index += 1) {
+      if (timeline[index].timeSeconds < state.timerSeconds) {
+        targetIndex = index;
+        continue;
+      }
+      break;
+    }
   }
-  if (crossedDecisionNodeIds.length > 0 || decisionNodeIdsToClearOnUndo.length > 0) {
-    state.pendingDecisionChoice = undefined;
+
+  if (targetIndex < 0) {
+    debugNavigation("jumpPrevious no-op; already at earliest resolved build item", {
+      ...getNavigationSnapshot(state),
+      timelineLength: timeline.length
+    });
+    return;
   }
+
+  const target = timeline[targetIndex];
+  state.timerSeconds = Number.isFinite(target.timeSeconds)
+    ? Math.max(-COUNTDOWN_DURATION_SECONDS, target.timeSeconds - ACTION_SELECTION_EPSILON_SECONDS)
+    : state.timerSeconds;
+  state.currentNodeId = target.nodeId;
+  state.currentStepIndex = target.stepIndex;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
+  clearPendingDecisionQueue(state);
   alignProgressToGameTime(state);
-  debugNavigation("jumpPrevious restored history entry", {
-    restoredNodeId: previous.nodeId,
-    restoredStepIndex: previous.stepIndex,
-    restoredTimerSeconds: previous.timerSeconds,
-    crossedDecisionNodeIds,
-    decisionNodeIdsToClearOnUndo,
+  render(state);
+  debugNavigation("jumpPrevious moved to resolved build item", {
+    targetNodeId: target.nodeId,
+    targetStepIndex: target.stepIndex,
+    targetTimerSeconds: target.timeSeconds,
+    appliedTimerSeconds: state.timerSeconds,
     ...getNavigationSnapshot(state)
   });
 }
@@ -930,37 +1221,74 @@ function jumpToNextBuildItem(state: AppState): void {
     debugNavigation("jumpNext no-op; current node undefined", getNavigationSnapshot(state));
     return;
   }
-  debugNavigation("jumpNext preparing history entry", getNavigationSnapshot(state));
-  const historyEntry: JumpHistoryEntry = {
-    nodeId: state.currentNodeId,
-    stepIndex: state.currentStepIndex,
-    timerSeconds: state.timerSeconds,
-    currentBranchLabel: state.currentBranchLabel,
-    pendingDecisionChoice: state.pendingDecisionChoice,
-    rememberedDecisionChoices: { ...state.rememberedDecisionChoices }
-  };
-  const crossedDecisionNodeIds = advanceToNextBuildItem(state);
-  if (crossedDecisionNodeIds.length > 0) {
-    historyEntry.crossedDecisionNodeIds = crossedDecisionNodeIds;
-    const decisionNodeIdsToClearOnUndo = crossedDecisionNodeIds.filter(
-      (decisionNodeId) => !(decisionNodeId in historyEntry.rememberedDecisionChoices)
-    );
-    if (decisionNodeIdsToClearOnUndo.length > 0) {
-      historyEntry.decisionNodeIdsToClearOnUndo = decisionNodeIdsToClearOnUndo;
-    }
+  debugNavigation("jumpNext start", getNavigationSnapshot(state));
+  const timeline = getResolvedBuildTimeline(state);
+  if (timeline.length === 0) {
+    debugNavigation("jumpNext no-op; resolved timeline empty", getNavigationSnapshot(state));
+    return;
   }
-  state.jumpHistory.push(historyEntry);
-  debugNavigation("jumpNext completed and history pushed", {
-    crossedDecisionNodeIds,
-    decisionNodeIdsToClearOnUndo: historyEntry.decisionNodeIdsToClearOnUndo ?? [],
-    historyDepthAfterPush: state.jumpHistory.length,
+
+  let targetIndex = timeline.findIndex(
+    (entry) => entry.nodeId === state.currentNodeId && entry.stepIndex === state.currentStepIndex
+  );
+  if (targetIndex >= 0) {
+    targetIndex += 1;
+  } else {
+    targetIndex = timeline.findIndex((entry) => entry.timeSeconds > state.timerSeconds);
+  }
+
+  if (targetIndex < 0 || targetIndex >= timeline.length) {
+    debugNavigation("jumpNext no-op; already at latest resolved build item", {
+      ...getNavigationSnapshot(state),
+      timelineLength: timeline.length
+    });
+    return;
+  }
+
+  const target = timeline[targetIndex];
+  state.timerSeconds = Number.isFinite(target.timeSeconds)
+    ? Math.max(-COUNTDOWN_DURATION_SECONDS, target.timeSeconds - ACTION_SELECTION_EPSILON_SECONDS)
+    : state.timerSeconds;
+  state.currentNodeId = target.nodeId;
+  state.currentStepIndex = target.stepIndex;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
+  clearPendingDecisionQueue(state);
+  alignProgressToGameTime(state);
+  render(state);
+  debugNavigation("jumpNext moved to resolved build item", {
+    targetNodeId: target.nodeId,
+    targetStepIndex: target.stepIndex,
+    targetTimerSeconds: target.timeSeconds,
+    appliedTimerSeconds: state.timerSeconds,
     ...getNavigationSnapshot(state)
   });
 }
 
-function handleAction(state: AppState, action: ControlAction): void {
+function handleAction(state: AppState, action: ControlAction, source = "unknown"): void {
   const node = getCurrentNode(state);
   const chooseBranch = getBranchForChooseAction(action);
+  const inputSeq = nextDebugInputSequence(state);
+  const now = Date.now();
+  const lastAtForSource = state.lastActionAtMsBySource[source];
+  const deltaMsFromSameSource = typeof lastAtForSource === "number" ? now - lastAtForSource : null;
+  state.lastActionAtMsBySource[source] = now;
+  debugNavigation("handleAction received", {
+    inputSeq,
+    source,
+    deltaMsFromSameSource,
+    action,
+    chooseBranch: chooseBranch ?? null,
+    timerStarted: state.timerStarted,
+    currentNodeId: state.currentNodeId ?? null,
+    currentNodeType: node?.type ?? null,
+    currentDecisionChoices:
+      node?.type === "decision" ? describeDecisionChoices(node) : null,
+    pendingDecisionChoice: getPendingDecisionChoice(state) ?? null,
+    pendingDecisionQueue: [...state.pendingDecisionQueue],
+    decisionInputBlockedUntilMs: state.decisionInputBlockedUntilMs ?? null,
+    nowMs: now
+  });
 
   if (action === "reset") {
     resetStateToStart(state);
@@ -978,7 +1306,17 @@ function handleAction(state: AppState, action: ControlAction): void {
 
   if (!state.timerStarted) {
     if (chooseBranch) {
+      debugNavigation("handleAction selecting race", {
+        inputSeq,
+        source,
+        chooseBranch
+      });
       selectPlayerRace(state, chooseBranch);
+      state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
+      debugNavigation("handleAction race selected and buffered", {
+        inputSeq,
+        blockedUntilMs: state.decisionInputBlockedUntilMs
+      });
     }
     return;
   }
@@ -1009,12 +1347,29 @@ function handleAction(state: AppState, action: ControlAction): void {
   }
 
   if (chooseBranch) {
+    if (typeof state.decisionInputBlockedUntilMs === "number" && now < state.decisionInputBlockedUntilMs) {
+      debugNavigation("choose action ignored due to decision input buffer", {
+        inputSeq,
+        source,
+        requestedBranch: chooseBranch,
+        blockedUntilMs: state.decisionInputBlockedUntilMs,
+        nowMs: now,
+        ...getNavigationSnapshot(state)
+      });
+      return;
+    }
     if (node?.type === "decision") {
+      debugNavigation("handleAction applying choose on current decision node", {
+        inputSeq,
+        source,
+        nodeId: state.currentNodeId,
+        requestedBranch: chooseBranch,
+        choices: describeDecisionChoices(node)
+      });
       chooseDecisionBranch(state, chooseBranch);
       return;
     }
-    state.pendingDecisionChoice = chooseBranch;
-    render(state);
+    resolveUpcomingDecisionChoice(state, chooseBranch, source, inputSeq);
     return;
   }
 }
@@ -1050,8 +1405,18 @@ function setupFocusedFallback(state: AppState): void {
     if (!action) {
       return;
     }
+    debugNavigation("focused keydown mapped to action", {
+      key: event.key,
+      code: event.code,
+      repeat: event.repeat,
+      action,
+      ctrlKey: event.ctrlKey,
+      altKey: event.altKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey
+    });
     event.preventDefault();
-    handleAction(state, action);
+    handleAction(state, action, "focused-keydown");
   });
 }
 
@@ -1087,7 +1452,10 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
   state.timerPaused = false;
   state.timerStarted = false;
   state.currentBranchLabel = formatRaceLabel();
-  state.pendingDecisionChoice = undefined;
+  clearPendingDecisionQueue(state);
+  state.decisionInputBlockedUntilMs = undefined;
+  state.lastQueuedChooseBranch = undefined;
+  state.lastQueuedChooseAtMs = undefined;
   state.rememberedDecisionChoices = {};
   state.jumpHistory = [];
   clearBranchAutoSelect(state);
@@ -1175,15 +1543,24 @@ async function main(): Promise<void> {
     timerPaused: false,
     timerStarted: false,
     currentBranchLabel: formatRaceLabel(),
+    pendingDecisionQueue: [],
+    decisionInputBlockedUntilMs: undefined,
+    lastQueuedChooseBranch: undefined,
+    lastQueuedChooseAtMs: undefined,
     rememberedDecisionChoices: {},
-    jumpHistory: []
+    jumpHistory: [],
+    debugInputSequence: 0,
+    lastActionAtMsBySource: {}
   };
 
   render(state);
   setupFocusedFallback(state);
   setupReloadControl(state);
   startTickLoop(state);
-  window.overlayApi.onControlAction((action) => handleAction(state, action));
+  window.overlayApi.onControlAction((action) => {
+    debugNavigation("overlay control action received", { action });
+    handleAction(state, action, "overlay-control");
+  });
 }
 
 main().catch((error) => {

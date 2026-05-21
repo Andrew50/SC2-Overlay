@@ -16,6 +16,8 @@ let mainWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
 let runtimeDataRoot = "";
 let runtimeSchemaRoot = "";
+const CHOOSE_REPEAT_GUARD_MS = 300;
+const lastChooseBroadcastAtMs: Partial<Record<ControlAction, number>> = {};
 
 const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
 const electronMajor = Number.parseInt(process.versions.electron.split(".")[0] ?? "0", 10);
@@ -53,7 +55,24 @@ function resolveRendererIndex(): string {
 }
 
 function broadcastControlAction(action: ControlAction): void {
-  console.log(`Global shortcut callback fired: ${action}`);
+  const now = Date.now();
+  const isChooseAction = action === "choose1" || action === "choose2" || action === "choose3";
+  const windowFocused = Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused());
+  const windowVisible = Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible());
+  if (isChooseAction) {
+    const lastAt = lastChooseBroadcastAtMs[action];
+    if (typeof lastAt === "number" && now - lastAt < CHOOSE_REPEAT_GUARD_MS) {
+      console.log(
+        `Suppressed repeated global shortcut callback for ${action} (${now - lastAt}ms < ${CHOOSE_REPEAT_GUARD_MS}ms) ` +
+          `[focused=${windowFocused} visible=${windowVisible} now=${now}]`
+      );
+      return;
+    }
+    lastChooseBroadcastAtMs[action] = now;
+  }
+  console.log(
+    `Global shortcut callback fired: ${action} [focused=${windowFocused} visible=${windowVisible} now=${now}]`
+  );
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("control-action", action);
   }
@@ -183,6 +202,23 @@ function registerGlobalHotkeys(config: AppConfig): void {
     pause: config.hotkeys.global.pause ?? ""
   };
   const toggleVisibilityAccelerator = config.hotkeys.global.toggleVisibility ?? "";
+  console.log(
+    `Global hotkey config: ${inspect(
+      {
+        choose1: hotkeyMap.choose1,
+        choose2: hotkeyMap.choose2,
+        choose3: hotkeyMap.choose3,
+        reset: hotkeyMap.reset,
+        jumpForward: hotkeyMap.jumpForward,
+        jumpBackward: hotkeyMap.jumpBackward,
+        jumpPrevious: hotkeyMap.jumpPrevious,
+        jumpNext: hotkeyMap.jumpNext,
+        pause: hotkeyMap.pause,
+        toggleVisibility: toggleVisibilityAccelerator
+      },
+      { compact: true }
+    )}`
+  );
 
   const isGnomeWayland =
     isLinuxWayland && (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase().includes("gnome");
