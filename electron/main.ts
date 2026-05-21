@@ -171,14 +171,17 @@ function registerGlobalHotkeys(config: AppConfig): void {
   }
 
   const hotkeyMap: Record<ControlAction, string> = {
-    left: config.hotkeys.global.left,
-    middle: config.hotkeys.global.middle,
-    right: config.hotkeys.global.right,
-    pause: config.hotkeys.global.pause,
+    choose1: config.hotkeys.global.choose1,
+    choose2: config.hotkeys.global.choose2,
+    choose3: config.hotkeys.global.choose3,
     reset: config.hotkeys.global.reset,
-    next: config.hotkeys.global.next
+    jumpForward: config.hotkeys.global.jumpForward,
+    jumpBackward: config.hotkeys.global.jumpBackward,
+    jumpPrevious: config.hotkeys.global.jumpPrevious,
+    jumpNext: config.hotkeys.global.jumpNext,
+    pause: config.hotkeys.global.pause ?? ""
   };
-  const toggleVisibilityAccelerator = config.hotkeys.global.toggleVisibility;
+  const toggleVisibilityAccelerator = config.hotkeys.global.toggleVisibility ?? "";
 
   const isGnomeWayland =
     isLinuxWayland && (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase().includes("gnome");
@@ -348,6 +351,18 @@ function setupIpc(): void {
   ipcMain.handle("app:reload-data", () => reloadAppData());
   ipcMain.handle("app:toggle-overlay-visibility", () => toggleMainWindowVisibility());
   ipcMain.handle("app:show-overlay", () => showMainWindow());
+  ipcMain.handle("app:hide-overlay", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+    mainWindow.hide();
+  });
+  ipcMain.handle("app:is-overlay-visible", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return false;
+    }
+    return mainWindow.isVisible();
+  });
   ipcMain.handle("app:open-builds-directory", async () => {
     const buildsDirectoryPath = resolveBuildsDirectoryPath();
     const openError = await shell.openPath(buildsDirectoryPath);

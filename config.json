@@ -16,22 +16,28 @@
   "hotkeys": {
     "globalEnabled": true,
     "global": {
-      "left": "F1",
-      "middle": "F2",
-      "right": "F3",
+      "choose1": "F1",
+      "choose2": "F2",
+      "choose3": "F3",
       "reset": "F4",
-      "next": "F5",
-      "pause": "F6",
-      "toggleVisibility": "F7"
+      "jumpForward": "F5",
+      "jumpBackward": "F6",
+      "jumpPrevious": "F7",
+      "jumpNext": "F8",
+      "pause": "",
+      "toggleVisibility": ""
     },
     "focused": {
-      "left": "F1",
-      "middle": "F2",
-      "right": "F3",
+      "choose1": "F1",
+      "choose2": "F2",
+      "choose3": "F3",
       "reset": "F4",
-      "next": "F5",
-      "pause": "F6",
-      "toggleVisibility": "F7"
+      "jumpForward": "F5",
+      "jumpBackward": "F6",
+      "jumpPrevious": "F7",
+      "jumpNext": "F8",
+      "pause": "",
+      "toggleVisibility": ""
     }
   },
   "timer": {

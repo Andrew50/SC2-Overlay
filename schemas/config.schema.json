@@ -80,16 +80,28 @@
   "$defs": {
     "hotkeyMap": {
       "type": "object",
-      "required": ["left", "middle", "right", "pause", "reset", "next", "toggleVisibility"],
+      "required": [
+        "choose1",
+        "choose2",
+        "choose3",
+        "reset",
+        "jumpForward",
+        "jumpBackward",
+        "jumpPrevious",
+        "jumpNext"
+      ],
       "additionalProperties": false,
       "properties": {
-        "left": { "type": "string", "minLength": 1 },
-        "middle": { "type": "string", "minLength": 1 },
-        "right": { "type": "string", "minLength": 1 },
-        "pause": { "type": "string", "minLength": 1 },
+        "choose1": { "type": "string", "minLength": 1 },
+        "choose2": { "type": "string", "minLength": 1 },
+        "choose3": { "type": "string", "minLength": 1 },
         "reset": { "type": "string", "minLength": 1 },
-        "next": { "type": "string", "minLength": 1 },
-        "toggleVisibility": { "type": "string", "minLength": 1 }
+        "jumpForward": { "type": "string", "minLength": 1 },
+        "jumpBackward": { "type": "string", "minLength": 1 },
+        "jumpPrevious": { "type": "string", "minLength": 1 },
+        "jumpNext": { "type": "string", "minLength": 1 },
+        "pause": { "type": "string", "minLength": 0 },
+        "toggleVisibility": { "type": "string", "minLength": 0 }
       }
     }
   }

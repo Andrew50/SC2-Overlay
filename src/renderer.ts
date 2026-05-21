@@ -22,6 +22,8 @@ interface AppState {
   selectedPlayerRace?: PlayerRace;
   currentNodeId?: string;
   currentStepIndex: number;
+  currentActionKey?: string;
+  currentActionRangeStartSeconds?: number;
   timerSeconds: number;
   timerPaused: boolean;
   timerStarted: boolean;
@@ -30,6 +32,14 @@ interface AppState {
   timeoutContextKey?: string;
   timeoutStartedAtMs?: number;
   timeoutDurationMs?: number;
+  pendingDecisionChoice?: DecisionChoice["key"];
+  jumpHistory: JumpHistoryEntry[];
+}
+
+interface JumpHistoryEntry {
+  nodeId: string;
+  stepIndex: number;
+  timerSeconds: number;
 }
 
 interface DecisionChoice {
@@ -110,10 +120,6 @@ function formatSeconds(totalSeconds: number): string {
     .padStart(2, "0");
   const seconds = (bounded % 60).toString().padStart(2, "0");
   return `${minutes}:${seconds}`;
-}
-
-function toTimelineSeconds(state: AppState): number {
-  return state.timerSeconds;
 }
 
 function formatTimerDisplay(value: number): string {
@@ -204,8 +210,31 @@ function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
 }
 
 function getChoiceHotkey(state: AppState, key: DecisionChoice["key"]): string {
-  const configured = state.data.config.hotkeys.focused[key];
-  return formatHotkey(configured || key);
+  const keyMap: Record<DecisionChoice["key"], keyof typeof state.data.config.hotkeys.focused> = {
+    left: "choose1",
+    middle: "choose2",
+    right: "choose3"
+  };
+  const configured = state.data.config.hotkeys.focused[keyMap[key]];
+  const fallback: Record<DecisionChoice["key"], string> = {
+    left: "Choose 1",
+    middle: "Choose 2",
+    right: "Choose 3"
+  };
+  return formatHotkey(configured || fallback[key]);
+}
+
+function getBranchForChooseAction(action: ControlAction): DecisionChoice["key"] | undefined {
+  if (action === "choose1") {
+    return "left";
+  }
+  if (action === "choose2") {
+    return "middle";
+  }
+  if (action === "choose3") {
+    return "right";
+  }
+  return undefined;
 }
 
 function clearBranchAutoSelect(state: AppState): void {
@@ -218,7 +247,7 @@ function clearBranchAutoSelect(state: AppState): void {
 
 function getSelectionContextKey(state: AppState): string | undefined {
   if (!state.timerStarted) {
-    return "race-selection";
+    return undefined;
   }
   const node = getCurrentNode(state);
   if (node?.type === "decision" && state.currentNodeId) {
@@ -246,10 +275,14 @@ function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
   state.selectedPlayerRace = option.playerRace;
   state.currentNodeId = option.graph.rootNodeId;
   state.currentStepIndex = 0;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
   state.timerSeconds = -COUNTDOWN_DURATION_SECONDS;
   state.timerPaused = false;
   state.timerStarted = true;
   state.currentBranchLabel = formatRaceLabel(option.playerRace);
+  state.pendingDecisionChoice = undefined;
+  state.jumpHistory = [];
   clearBranchAutoSelect(state);
   alignProgressToGameTime(state);
   render(state);
@@ -268,24 +301,66 @@ function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "righ
   state.currentBranchLabel = picked.label;
   state.currentNodeId = picked.target;
   state.currentStepIndex = 0;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = state.timerSeconds;
+  state.pendingDecisionChoice = undefined;
   clearBranchAutoSelect(state);
   alignProgressToGameTime(state);
   render(state);
 }
 
+function resetStateToStart(state: AppState): void {
+  state.activeGraph = undefined;
+  state.selectedPlayerRace = undefined;
+  state.currentNodeId = undefined;
+  state.currentStepIndex = 0;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
+  state.timerSeconds = 0;
+  state.timerPaused = false;
+  state.timerStarted = false;
+  state.currentBranchLabel = formatRaceLabel();
+  state.pendingDecisionChoice = undefined;
+  state.jumpHistory = [];
+  clearBranchAutoSelect(state);
+}
+
+function isAtStartState(state: AppState): boolean {
+  return (
+    !state.activeGraph &&
+    !state.selectedPlayerRace &&
+    !state.currentNodeId &&
+    state.currentStepIndex === 0 &&
+    state.timerSeconds === 0 &&
+    !state.timerPaused &&
+    !state.timerStarted
+  );
+}
+
 function alignProgressToGameTime(state: AppState): void {
   if (!state.activeGraph || !state.currentNodeId) {
+    state.currentActionKey = undefined;
+    state.currentActionRangeStartSeconds = undefined;
     return;
   }
 
   const visited = new Set<string>();
+  let previousTimedAnchorSeconds: number | undefined;
   while (state.currentNodeId && !visited.has(state.currentNodeId)) {
     visited.add(state.currentNodeId);
     const node: BuildNode | undefined = state.activeGraph.nodes[state.currentNodeId];
     if (!node) {
+      state.currentActionKey = undefined;
+      state.currentActionRangeStartSeconds = undefined;
       return;
     }
     if (node.type === "decision") {
+      const decisionSeconds = stepTimeSeconds(node.time);
+      if (Number.isFinite(decisionSeconds)) {
+        previousTimedAnchorSeconds = decisionSeconds;
+      }
+      state.currentActionKey = undefined;
+      state.currentActionRangeStartSeconds = previousTimedAnchorSeconds;
       return;
     }
 
@@ -294,11 +369,40 @@ function alignProgressToGameTime(state: AppState): void {
     });
     if (nextIndex >= 0) {
       state.currentStepIndex = nextIndex;
+      const currentActionKey = `${state.currentNodeId}:${nextIndex}`;
+      if (state.currentActionKey !== currentActionKey) {
+        let rangeStartSeconds = previousTimedAnchorSeconds;
+        if (nextIndex > 0) {
+          const previousStepSeconds = stepTimeSeconds(node.steps[nextIndex - 1]?.time);
+          if (Number.isFinite(previousStepSeconds)) {
+            rangeStartSeconds = previousStepSeconds;
+          }
+        }
+        state.currentActionRangeStartSeconds =
+          typeof rangeStartSeconds === "number" ? rangeStartSeconds : state.timerSeconds;
+        state.currentActionKey = currentActionKey;
+      }
       return;
+    }
+
+    for (let index = node.steps.length - 1; index >= 0; index -= 1) {
+      const stepSeconds = stepTimeSeconds(node.steps[index]?.time);
+      if (Number.isFinite(stepSeconds)) {
+        previousTimedAnchorSeconds = stepSeconds;
+        break;
+      }
     }
 
     if (!node.next) {
       state.currentStepIndex = Math.max(0, node.steps.length - 1);
+      const currentActionKey = `${state.currentNodeId}:${state.currentStepIndex}`;
+      if (state.currentActionKey !== currentActionKey) {
+        const previousStepSeconds = stepTimeSeconds(node.steps[state.currentStepIndex - 1]?.time);
+        state.currentActionRangeStartSeconds = Number.isFinite(previousStepSeconds)
+          ? previousStepSeconds
+          : (previousTimedAnchorSeconds ?? state.timerSeconds);
+        state.currentActionKey = currentActionKey;
+      }
       return;
     }
 
@@ -340,7 +444,7 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
   const items: QueueItem[] = [];
   let nodeId = activeNodeId;
   let stepIndex = activeStepIndex;
-  let previousBuildStepSeconds = 0;
+  let previousBuildStepSeconds = state.currentActionRangeStartSeconds ?? 0;
 
   if (activeNode?.type === "build" && activeStepIndex > 0) {
     const previousStep = activeNode.steps[activeStepIndex - 1];
@@ -394,6 +498,16 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
     }
 
     const choices = getDecisionChoices(node);
+    if (state.pendingDecisionChoice) {
+      const forcedChoice = choices.find(
+        (choice) => choice.key === state.pendingDecisionChoice && Boolean(choice.target)
+      );
+      if (forcedChoice?.target) {
+        nodeId = forcedChoice.target;
+        stepIndex = 0;
+        continue;
+      }
+    }
     for (const choice of choices) {
       if (items.length >= count) {
         break;
@@ -539,6 +653,16 @@ function render(state: AppState): void {
 
   const node = getCurrentNode(state);
   if (node?.type === "decision") {
+    if (state.pendingDecisionChoice) {
+      const choices = getDecisionChoices(node);
+      const forcedChoice = choices.find(
+        (choice) => choice.key === state.pendingDecisionChoice && Boolean(choice.target)
+      );
+      if (forcedChoice) {
+        chooseDecisionBranch(state, forcedChoice.key);
+        return;
+      }
+    }
     setActionQueueHtml(actionQueue, renderSelectionRows(state, getDecisionChoices(node)));
     maybeArmDecisionTimeout(state);
     return;
@@ -591,45 +715,64 @@ function advanceToNextBuildItem(state: AppState): void {
   }
 }
 
-function handleCountdownNavigation(state: AppState, direction: "left" | "right"): void {
-  const delta = direction === "left" ? -COUNTDOWN_JUMP_SECONDS : COUNTDOWN_JUMP_SECONDS;
-  const currentTimeline = toTimelineSeconds(state);
-  state.timerSeconds = Math.max(-COUNTDOWN_DURATION_SECONDS, currentTimeline + delta);
+function jumpBySeconds(state: AppState, deltaSeconds: number): void {
+  const minimum = state.timerStarted ? -COUNTDOWN_DURATION_SECONDS : 0;
+  state.timerSeconds = Math.max(minimum, state.timerSeconds + deltaSeconds);
   alignProgressToGameTime(state);
   render(state);
 }
 
+function jumpToPreviousBuildItem(state: AppState): void {
+  const previous = state.jumpHistory.pop();
+  if (!previous) {
+    return;
+  }
+  state.currentNodeId = previous.nodeId;
+  state.currentStepIndex = previous.stepIndex;
+  state.timerSeconds = previous.timerSeconds;
+  alignProgressToGameTime(state);
+}
+
+function jumpToNextBuildItem(state: AppState): void {
+  if (!state.currentNodeId) {
+    return;
+  }
+  state.jumpHistory.push({
+    nodeId: state.currentNodeId,
+    stepIndex: state.currentStepIndex,
+    timerSeconds: state.timerSeconds
+  });
+  advanceToNextBuildItem(state);
+}
+
 function handleAction(state: AppState, action: ControlAction): void {
   const node = getCurrentNode(state);
+  const chooseBranch = getBranchForChooseAction(action);
 
   if (action === "reset") {
-    state.activeGraph = undefined;
-    state.selectedPlayerRace = undefined;
-    state.currentNodeId = undefined;
-    state.currentStepIndex = 0;
-    state.timerSeconds = 0;
-    state.timerPaused = false;
-    state.timerStarted = false;
-    state.currentBranchLabel = formatRaceLabel();
-    clearBranchAutoSelect(state);
-    void window.overlayApi.showOverlay();
+    resetStateToStart(state);
     render(state);
+    void (async () => {
+      const isVisible = await window.overlayApi.isOverlayVisible();
+      if (isVisible) {
+        await window.overlayApi.hideOverlay();
+        return;
+      }
+      await window.overlayApi.showOverlay();
+    })();
     return;
   }
 
   if (!state.timerStarted) {
-    if (action === "left" || action === "middle" || action === "right") {
-      selectPlayerRace(state, action);
+    if (chooseBranch) {
+      selectPlayerRace(state, chooseBranch);
     }
     return;
   }
 
-  if (action === "left" || action === "right") {
-    const canNavigateCountdown = state.timerSeconds <= COUNTDOWN_DURATION_SECONDS;
-    if (canNavigateCountdown) {
-      handleCountdownNavigation(state, action);
-      return;
-    }
+  if (action === "jumpBackward" || action === "jumpForward") {
+    jumpBySeconds(state, action === "jumpBackward" ? -COUNTDOWN_JUMP_SECONDS : COUNTDOWN_JUMP_SECONDS);
+    return;
   }
 
   if (action === "pause") {
@@ -638,22 +781,26 @@ function handleAction(state: AppState, action: ControlAction): void {
     return;
   }
 
-  if (action === "next") {
-    advanceToNextBuildItem(state);
+  if (action === "jumpNext") {
+    jumpToNextBuildItem(state);
     render(state);
     return;
   }
 
-  if (node?.type === "decision" && (action === "left" || action === "middle" || action === "right")) {
-    chooseDecisionBranch(state, action);
+  if (action === "jumpPrevious") {
+    jumpToPreviousBuildItem(state);
+    render(state);
     return;
   }
 
-  if (action === "left" || action === "right") {
-    const delta = state.data.config.timer.adjustSeconds;
-    state.timerSeconds = Math.max(0, state.timerSeconds + (action === "left" ? -delta : delta));
-    alignProgressToGameTime(state);
+  if (chooseBranch) {
+    if (node?.type === "decision") {
+      chooseDecisionBranch(state, chooseBranch);
+      return;
+    }
+    state.pendingDecisionChoice = chooseBranch;
     render(state);
+    return;
   }
 }
 
@@ -662,20 +809,28 @@ function setupFocusedFallback(state: AppState): void {
     const focusedHotkeys = state.data.config.hotkeys.focused;
     const pressedKey = event.code.toLowerCase();
     const pressedValue = event.key.toLowerCase();
-    const toggleVisibilityHotkey = focusedHotkeys.toggleVisibility.toLowerCase();
-    if (pressedKey === toggleVisibilityHotkey || pressedValue === toggleVisibilityHotkey) {
+    const toggleVisibilityHotkey = focusedHotkeys.toggleVisibility?.toLowerCase();
+    if (
+      toggleVisibilityHotkey &&
+      (pressedKey === toggleVisibilityHotkey || pressedValue === toggleVisibilityHotkey)
+    ) {
       event.preventDefault();
       void window.overlayApi.toggleOverlayVisibility();
       return;
     }
     const actionByKey = new Map<string, ControlAction>([
-      [focusedHotkeys.left.toLowerCase(), "left"],
-      [focusedHotkeys.middle.toLowerCase(), "middle"],
-      [focusedHotkeys.right.toLowerCase(), "right"],
-      [focusedHotkeys.pause.toLowerCase(), "pause"],
+      [focusedHotkeys.choose1.toLowerCase(), "choose1"],
+      [focusedHotkeys.choose2.toLowerCase(), "choose2"],
+      [focusedHotkeys.choose3.toLowerCase(), "choose3"],
       [focusedHotkeys.reset.toLowerCase(), "reset"],
-      [focusedHotkeys.next.toLowerCase(), "next"]
+      [focusedHotkeys.jumpForward.toLowerCase(), "jumpForward"],
+      [focusedHotkeys.jumpBackward.toLowerCase(), "jumpBackward"],
+      [focusedHotkeys.jumpPrevious.toLowerCase(), "jumpPrevious"],
+      [focusedHotkeys.jumpNext.toLowerCase(), "jumpNext"]
     ]);
+    if (focusedHotkeys.pause) {
+      actionByKey.set(focusedHotkeys.pause.toLowerCase(), "pause");
+    }
     const action = actionByKey.get(pressedKey) ?? actionByKey.get(pressedValue);
     if (!action) {
       return;
@@ -711,10 +866,14 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
   state.selectedPlayerRace = undefined;
   state.currentNodeId = undefined;
   state.currentStepIndex = 0;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
   state.timerSeconds = 0;
   state.timerPaused = false;
   state.timerStarted = false;
   state.currentBranchLabel = formatRaceLabel();
+  state.pendingDecisionChoice = undefined;
+  state.jumpHistory = [];
   clearBranchAutoSelect(state);
   render(state);
 }
@@ -794,10 +953,13 @@ async function main(): Promise<void> {
   const state: AppState = {
     data,
     currentStepIndex: 0,
+    currentActionKey: undefined,
+    currentActionRangeStartSeconds: undefined,
     timerSeconds: 0,
     timerPaused: false,
     timerStarted: false,
-    currentBranchLabel: formatRaceLabel()
+    currentBranchLabel: formatRaceLabel(),
+    jumpHistory: []
   };
 
   render(state);

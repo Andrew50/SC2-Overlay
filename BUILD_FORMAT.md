@@ -355,11 +355,18 @@ npm run validate:data
 
 This checks schema validity and graph reference resolution.
 
+To print every possible build order traversal (root to leaf) in the terminal:
+
+```bash
+npm run builds
+```
+
 ## 7) Hotkeys and Runtime Behavior
 
-`config.json` controls hotkeys (`left`, `middle`, `right`, `pause`, `reset`, `next`, `toggleVisibility`) in both focused and global modes.
+`config.json` controls hotkeys (`choose1`, `choose2`, `choose3`, `reset`, `jumpForward`, `jumpBackward`, `jumpPrevious`, `jumpNext`, plus optional `pause` and `toggleVisibility`) in both focused and global modes.
 
-- `next` advances within the active build branch and then to next node.
-- On decisions, `left/middle/right` selects branches.
-- Timer starts after player race is selected (with the normal start delay) and can be adjusted by `left/right` based on `timer.adjustSeconds`.
-- `toggleVisibility` hides/shows the overlay window (default `F7`) without disabling global hotkeys.
+- `choose1/choose2/choose3` sets the branch option used at the next upcoming decision (`1`, `2`, or `3`), without changing the timer value.
+- `jumpNext` advances within the active build branch and then to the next node.
+- `jumpPrevious` returns to the previous jump milestone.
+- `jumpForward` / `jumpBackward` adjusts timeline by 2.5 seconds.
+- `toggleVisibility` can still hide/show the overlay window when bound, but is unbound by default.

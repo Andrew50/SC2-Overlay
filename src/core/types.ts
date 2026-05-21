@@ -3,13 +3,16 @@ export type PlayerRace = "terran" | "zerg" | "protoss";
 export type OpponentRace = "terran" | "zerg" | "protoss";
 
 export interface HotkeyMap {
-  left: string;
-  middle: string;
-  right: string;
-  pause: string;
+  choose1: string;
+  choose2: string;
+  choose3: string;
   reset: string;
-  next: string;
-  toggleVisibility: string;
+  jumpForward: string;
+  jumpBackward: string;
+  jumpPrevious: string;
+  jumpNext: string;
+  pause?: string;
+  toggleVisibility?: string;
 }
 
 export interface AppConfig {
@@ -137,7 +140,16 @@ export interface ResolvedBuildGraph {
   nodes: Record<string, BuildNode>;
 }
 
-export type ControlAction = "left" | "middle" | "right" | "pause" | "reset" | "next";
+export type ControlAction =
+  | "choose1"
+  | "choose2"
+  | "choose3"
+  | "pause"
+  | "reset"
+  | "jumpForward"
+  | "jumpBackward"
+  | "jumpPrevious"
+  | "jumpNext";
 
 export interface PlayerRaceOption {
   playerRace: PlayerRace;

@@ -8,6 +8,8 @@ declare global {
       openBuildsDirectory: () => Promise<string>;
       toggleOverlayVisibility: () => Promise<boolean>;
       showOverlay: () => Promise<void>;
+      hideOverlay: () => Promise<void>;
+      isOverlayVisible: () => Promise<boolean>;
       onControlAction: (callback: (action: ControlAction) => void) => () => void;
     };
   }
