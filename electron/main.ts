@@ -298,6 +298,31 @@ function syncDefaultsOnVersionChange(userDataRoot: string, bundledDefaultsRoot: 
   writeFileSync(syncVersionMarkerPath, currentVersion, "utf8");
 }
 
+function restoreBundledDefaults(userDataRoot: string, bundledDefaultsRoot: string, reason: unknown): void {
+  const sourceConfigPath = path.join(bundledDefaultsRoot, "config.json");
+  const sourceBuildsPath = path.join(bundledDefaultsRoot, "builds");
+  const targetConfigPath = path.join(userDataRoot, "config.json");
+  const targetBuildsPath = path.join(userDataRoot, "builds");
+  const syncVersionMarkerPath = path.join(userDataRoot, ".defaults-sync-version");
+  const currentVersion = app.getVersion();
+  const backupStamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupRoot = path.join(userDataRoot, "backups", `recovery_${currentVersion}_${backupStamp}`);
+
+  console.error("Runtime data failed to load; restoring bundled defaults.", reason);
+
+  if (existsSync(targetConfigPath)) {
+    movePathToBackup(targetConfigPath, path.join(backupRoot, "config.json"));
+  }
+  if (existsSync(targetBuildsPath)) {
+    movePathToBackup(targetBuildsPath, path.join(backupRoot, "builds"));
+  }
+
+  copyPathIfMissing(sourceConfigPath, targetConfigPath);
+  copyPathIfMissing(sourceBuildsPath, targetBuildsPath);
+  mkdirSync(path.dirname(syncVersionMarkerPath), { recursive: true });
+  writeFileSync(syncVersionMarkerPath, currentVersion, "utf8");
+}
+
 function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
   const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
   const envSchemaRoot = process.env.SC2_OVERLAY_SCHEMA_ROOT?.trim();
@@ -333,6 +358,21 @@ function reloadAppData(): InitialAppData {
   initialData = loadInitialData();
   applyDynamicConfig(initialData.config);
   return initialData;
+}
+
+function reloadAppDataWithPackagedRecovery(): InitialAppData {
+  try {
+    return reloadAppData();
+  } catch (error) {
+    if (!app.isPackaged) {
+      throw error;
+    }
+
+    const userDataRoot = resolvePackagedDataRoot();
+    const bundledDefaultsRoot = resolveBundledDefaultsRoot(app.getAppPath());
+    restoreBundledDefaults(userDataRoot, bundledDefaultsRoot, error);
+    return reloadAppData();
+  }
 }
 
 function resolveBuildsDirectoryPath(): string {
@@ -387,7 +427,7 @@ async function bootstrap(): Promise<void> {
   runtimeSchemaRoot = runtimePaths.schemaRoot;
   process.env.SC2_OVERLAY_APP_ROOT = runtimeDataRoot;
   process.env.SC2_OVERLAY_SCHEMA_ROOT = runtimeSchemaRoot;
-  initialData = reloadAppData();
+  initialData = reloadAppDataWithPackagedRecovery();
   mainWindow = createMainWindow(initialData.config);
   setupIpc();
   await loadRenderer(mainWindow);
