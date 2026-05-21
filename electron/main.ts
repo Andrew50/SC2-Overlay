@@ -2,6 +2,7 @@ import { app, BrowserWindow, globalShortcut, ipcMain, screen, shell } from "elec
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspect } from "node:util";
 import { loadInitialData } from "../src/core/loader";
 import type { AppConfig, ControlAction, InitialAppData } from "../src/core/types";
 
@@ -370,6 +371,13 @@ function setupIpc(): void {
       throw new Error(openError);
     }
     return buildsDirectoryPath;
+  });
+  ipcMain.on("app:debug-log", (_event, message: string, details?: unknown) => {
+    if (typeof details === "undefined") {
+      console.log(`[renderer-debug] ${message}`);
+      return;
+    }
+    console.log(`[renderer-debug] ${message} ${inspect(details, { depth: 6, breakLength: 120 })}`);
   });
 }
 

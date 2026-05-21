@@ -368,5 +368,5 @@ npm run builds
 - `choose1/choose2/choose3` sets the branch option used at the next upcoming decision (`1`, `2`, or `3`), without changing the timer value.
 - `jumpNext` advances within the active build branch and then to the next node.
 - `jumpPrevious` returns to the previous jump milestone.
-- `jumpForward` / `jumpBackward` adjusts timeline by 2.5 seconds.
+- `jumpForward` / `jumpBackward` adjusts timeline by `timer.adjustSeconds` (default `5` seconds).
 - `toggleVisibility` can still hide/show the overlay window when bound, but is unbound by default.

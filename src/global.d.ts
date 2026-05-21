@@ -10,6 +10,7 @@ declare global {
       showOverlay: () => Promise<void>;
       hideOverlay: () => Promise<void>;
       isOverlayVisible: () => Promise<boolean>;
+      debugLog: (message: string, details?: unknown) => void;
       onControlAction: (callback: (action: ControlAction) => void) => () => void;
     };
   }

@@ -20,8 +20,8 @@
       "choose2": "F2",
       "choose3": "F3",
       "reset": "F4",
-      "jumpForward": "F5",
-      "jumpBackward": "F6",
+      "jumpForward": "F6",
+      "jumpBackward": "F5",
       "jumpPrevious": "F7",
       "jumpNext": "F8",
       "pause": "",
@@ -32,8 +32,8 @@
       "choose2": "F2",
       "choose3": "F3",
       "reset": "F4",
-      "jumpForward": "F5",
-      "jumpBackward": "F6",
+      "jumpForward": "F6",
+      "jumpBackward": "F5",
       "jumpPrevious": "F7",
       "jumpNext": "F8",
       "pause": "",
@@ -41,7 +41,7 @@
     }
   },
   "timer": {
-    "adjustSeconds": 2.5,
+    "adjustSeconds": 5,
     "presets": [1, 2.5, 5, 10]
   },
   "ui": {

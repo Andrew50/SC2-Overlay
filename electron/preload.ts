@@ -11,6 +11,9 @@ const api = {
   showOverlay: (): Promise<void> => ipcRenderer.invoke("app:show-overlay"),
   hideOverlay: (): Promise<void> => ipcRenderer.invoke("app:hide-overlay"),
   isOverlayVisible: (): Promise<boolean> => ipcRenderer.invoke("app:is-overlay-visible"),
+  debugLog: (message: string, details?: unknown): void => {
+    ipcRenderer.send("app:debug-log", message, details);
+  },
   onControlAction: (callback: (action: ControlAction) => void): UnsubscribeFn => {
     const listener = (_event: Electron.IpcRendererEvent, action: ControlAction) => {
       callback(action);
