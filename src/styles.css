@@ -104,8 +104,8 @@ body {
 
 .action-block {
   position: relative;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   background: rgba(23, 28, 41, 0.9);
@@ -160,27 +160,26 @@ body {
   color: #c8daff;
   font-size: 0.8rem;
   white-space: nowrap;
-  flex-shrink: 0;
-  margin-left: auto;
+  justify-self: end;
 }
 
 .action-text {
   font-size: 0.9rem;
   text-align: left;
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.action-block.is-selection .action-text {
-  text-align: left;
-}
-
 .action-block.is-selection {
+  grid-template-columns: auto minmax(0, 1fr);
   background: rgba(190, 150, 30, 0.3);
   border-color: rgba(255, 219, 120, 0.75);
+}
+
+.action-block.is-selection .action-text {
+  text-align: left;
 }
 
 .action-block.is-selection .action-meta,
