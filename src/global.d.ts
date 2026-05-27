@@ -6,6 +6,7 @@ declare global {
       getInitialData: () => Promise<InitialAppData>;
       reloadData: () => Promise<InitialAppData>;
       openBuildsDirectory: () => Promise<string>;
+      resizeOverlay: (height: number) => Promise<void>;
       toggleOverlayVisibility: () => Promise<boolean>;
       showOverlay: () => Promise<void>;
       hideOverlay: () => Promise<void>;

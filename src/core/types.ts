@@ -38,6 +38,8 @@ export interface AppConfig {
   timer: {
     adjustSeconds: number;
     presets: number[];
+    decisionTimeoutSeconds: number;
+    entryGraceSeconds: number;
   };
   ui: {
     mode: DisplayMode;

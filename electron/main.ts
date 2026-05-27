@@ -448,6 +448,20 @@ function setupIpc(): void {
     }
     return buildsDirectoryPath;
   });
+  ipcMain.handle("app:resize-overlay", (_event, requestedHeight: number) => {
+    if (!mainWindow || mainWindow.isDestroyed() || !initialData) {
+      return;
+    }
+    const nextHeight = Math.max(
+      initialData.config.window.minHeight,
+      Math.ceil(Number.isFinite(requestedHeight) ? requestedHeight : initialData.config.window.height)
+    );
+    const [currentWidth, currentHeight] = mainWindow.getContentSize();
+    if (currentHeight === nextHeight) {
+      return;
+    }
+    mainWindow.setContentSize(currentWidth, nextHeight);
+  });
   ipcMain.on("app:debug-log", (_event, message: string, details?: unknown) => {
     if (typeof details === "undefined") {
       console.log(`[renderer-debug] ${message}`);

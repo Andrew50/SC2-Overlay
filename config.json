@@ -1,12 +1,12 @@
 {
   "window": {
-    "width": 560,
-    "height": 320,
-    "minWidth": 320,
-    "minHeight": 220,
+    "width": 336,
+    "height": 192,
+    "minWidth": 200,
+    "minHeight": 130,
     "monitor": 2,
-    "x": 10,
-    "y": 10,
+    "x": 5,
+    "y": 5,
     "opacity": 0.9,
     "alwaysOnTop": true,
     "transparent": true,
@@ -42,11 +42,13 @@
   },
   "timer": {
     "adjustSeconds": 5,
-    "presets": [1, 2.5, 5, 10]
+    "presets": [1, 2.5, 5, 10],
+    "decisionTimeoutSeconds": 8,
+    "entryGraceSeconds": 8
   },
   "ui": {
     "mode": "minimal",
-    "showNextCount": 2,
+    "showNextCount": 5,
     "fontScale": 0.9,
     "scale": 0.9
   },

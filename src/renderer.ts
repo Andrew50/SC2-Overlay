@@ -1,4 +1,5 @@
 import type {
+  AppConfig,
   BuildNode,
   ControlAction,
   DecisionNodeEntry,
@@ -8,9 +9,9 @@ import type {
   ResolvedBuildGraph
 } from "./core/types";
 
-const VISIBLE_QUEUE_COUNT = 5;
-const BRANCH_AUTO_SELECT_SECONDS = 5;
-const ENTRY_GRACE_SECONDS = 5;
+const DEFAULT_VISIBLE_QUEUE_COUNT = 5;
+let BRANCH_AUTO_SELECT_SECONDS = 8;
+let ENTRY_GRACE_SECONDS = 8;
 const IMMINENT_ACTION_WARNING_SECONDS = 5;
 const COUNTDOWN_DURATION_SECONDS = 3;
 const COUNTDOWN_JUMP_SECONDS = 5;
@@ -102,6 +103,9 @@ const els = {
   overlayPanel: document.querySelector<HTMLElement>(".overlay-panel")
 };
 
+let pendingOverlayResizeFrame = 0;
+let lastRequestedOverlayHeight = -1;
+
 function assertElement<T extends Element>(el: T | null, key: string): T {
   if (!el) {
     throw new Error(`Missing required element: ${key}`);
@@ -191,6 +195,36 @@ function applyUiScale(fontScale: number, scale: number): void {
   const panel = assertElement(els.overlayPanel, "overlay-panel");
   panel.style.transformOrigin = "top left";
   panel.style.transform = `scale(${normalizedScale})`;
+}
+
+function getVisibleQueueCount(state: AppState): number {
+  const configured = state.data.config.ui.showNextCount;
+  if (!Number.isFinite(configured)) {
+    return DEFAULT_VISIBLE_QUEUE_COUNT;
+  }
+  return Math.max(0, Math.floor(configured));
+}
+
+function requestOverlayResize(): void {
+  if (pendingOverlayResizeFrame) {
+    return;
+  }
+  pendingOverlayResizeFrame = window.requestAnimationFrame(() => {
+    pendingOverlayResizeFrame = 0;
+    const panel = els.overlayPanel;
+    if (!panel) {
+      return;
+    }
+    const nextHeight = Math.max(1, Math.ceil(panel.getBoundingClientRect().height + 2));
+    if (nextHeight === lastRequestedOverlayHeight) {
+      return;
+    }
+    lastRequestedOverlayHeight = nextHeight;
+    const overlayApi = window.overlayApi as typeof window.overlayApi & {
+      resizeOverlay: (height: number) => Promise<void>;
+    };
+    void overlayApi.resizeOverlay(nextHeight);
+  });
 }
 
 function getCurrentNode(state: AppState): BuildNode | undefined {
@@ -898,9 +932,9 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
   return combined.slice(0, count);
 }
 
-function renderQueueBlocks(queueItems: QueueItem[]): string {
+function renderQueueBlocks(queueItems: QueueItem[], visibleCount: number): string {
   const rows: string[] = [];
-  for (let index = 0; index < VISIBLE_QUEUE_COUNT; index += 1) {
+  for (let index = 0; index < visibleCount; index += 1) {
     const item = queueItems[index];
     if (!item) {
       rows.push(`
@@ -959,7 +993,7 @@ function renderSelectionRows(state: AppState, choices: DecisionChoice[]): string
       label: choice.label
     };
   });
-  return renderQueueBlocks(rows);
+  return renderQueueBlocks(rows, getVisibleQueueCount(state));
 }
 
 function setActionQueueHtml(actionQueue: HTMLElement, html: string): void {
@@ -1004,6 +1038,7 @@ function render(state: AppState): void {
   const actionQueue = assertElement(els.actionQueue, "action-queue");
   const upcomingDecisions = assertElement(els.upcomingDecisions, "upcoming-decisions");
   const decisionContent = assertElement(els.decisionContent, "decision-content");
+  const visibleQueueCount = getVisibleQueueCount(state);
   state.currentBranchLabel = getFarthestResolvedBranchLabel(state);
   timerValue.textContent = formatTimerDisplay(state.timerSeconds);
   branchValue.textContent = state.currentBranchLabel;
@@ -1016,6 +1051,7 @@ function render(state: AppState): void {
     const choices = getPlayerRaceChoices(state);
     setActionQueueHtml(actionQueue, renderSelectionRows(state, choices));
     maybeArmDecisionTimeout(state);
+    requestOverlayResize();
     return;
   }
 
@@ -1023,11 +1059,13 @@ function render(state: AppState): void {
   if (node?.type === "decision") {
     setActionQueueHtml(actionQueue, renderSelectionRows(state, getDecisionChoices(node)));
     maybeArmDecisionTimeout(state);
+    requestOverlayResize();
     return;
   }
 
-  setActionQueueHtml(actionQueue, renderQueueBlocks(collectQueueItems(state, VISIBLE_QUEUE_COUNT)));
+  setActionQueueHtml(actionQueue, renderQueueBlocks(collectQueueItems(state, visibleQueueCount), visibleQueueCount));
   clearBranchAutoSelect(state);
+  requestOverlayResize();
 }
 
 function advanceToNextBuildItem(state: AppState): string[] {
@@ -1428,6 +1466,7 @@ function applyReloadedData(state: AppState, data: InitialAppData): void {
 
   state.data = data;
   applyUiScale(data.config.ui.fontScale, data.config.ui.scale);
+  applyTimerConfig(data.config.timer);
 
   if (hadStarted) {
     const nextOption =
@@ -1530,9 +1569,19 @@ function startTickLoop(state: AppState): void {
   }, TICK_INTERVAL_MS);
 }
 
+function applyTimerConfig(config: AppConfig["timer"]): void {
+  if (typeof config.decisionTimeoutSeconds === "number") {
+    BRANCH_AUTO_SELECT_SECONDS = config.decisionTimeoutSeconds;
+  }
+  if (typeof config.entryGraceSeconds === "number") {
+    ENTRY_GRACE_SECONDS = config.entryGraceSeconds;
+  }
+}
+
 async function main(): Promise<void> {
   const data = await window.overlayApi.getInitialData();
   applyUiScale(data.config.ui.fontScale, data.config.ui.scale);
+  applyTimerConfig(data.config.timer);
 
   const state: AppState = {
     data,

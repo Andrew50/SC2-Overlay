@@ -46,7 +46,7 @@
     },
     "timer": {
       "type": "object",
-      "required": ["adjustSeconds", "presets"],
+      "required": ["adjustSeconds", "presets", "decisionTimeoutSeconds", "entryGraceSeconds"],
       "additionalProperties": false,
       "properties": {
         "adjustSeconds": { "type": "number", "minimum": 0.1 },
@@ -54,7 +54,9 @@
           "type": "array",
           "items": { "type": "number", "minimum": 0.1 },
           "minItems": 1
-        }
+        },
+        "decisionTimeoutSeconds": { "type": "number", "minimum": 0.1 },
+        "entryGraceSeconds": { "type": "number", "minimum": 0.1 }
       }
     },
     "ui": {

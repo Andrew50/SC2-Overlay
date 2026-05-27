@@ -7,6 +7,7 @@ const api = {
   getInitialData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:get-initial-data"),
   reloadData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:reload-data"),
   openBuildsDirectory: (): Promise<string> => ipcRenderer.invoke("app:open-builds-directory"),
+  resizeOverlay: (height: number): Promise<void> => ipcRenderer.invoke("app:resize-overlay", height),
   toggleOverlayVisibility: (): Promise<boolean> => ipcRenderer.invoke("app:toggle-overlay-visibility"),
   showOverlay: (): Promise<void> => ipcRenderer.invoke("app:show-overlay"),
   hideOverlay: (): Promise<void> => ipcRenderer.invoke("app:hide-overlay"),

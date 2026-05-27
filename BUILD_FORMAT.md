@@ -203,27 +203,27 @@ Include matchup names in branch IDs only when needed for clarity and when that n
 
 Decision option labels should include both:
 
-- the **scouted condition**
-- the **response/build direction** in brackets
+- the **response/build direction**
+- the **scouted condition** in brackets
 
 Format:
 
-- `<scouted condition> [<response type/build direction>]`
+- `<response type/build direction> [<scouted condition>]`
 
 Examples:
 
-- `No 3rd Hatchery / Roach Warren scouted [defensive tank/bunker]`
-- `Fast Lair / Spire signs scouted [bio-mine anti-air]`
-- `Stargate / Oracle scouted [marine/turret/raven defense]`
-- `Barracks missing / proxy signs scouted [anti-proxy defense]`
+- `Defensive tank/bunker [no 3rd Hatchery / Roach Warren scouted]`
+- `Bio-mine anti-air [fast Lair / Spire signs scouted]`
+- `Marine/turret/raven defense [Stargate / Oracle scouted]`
+- `Anti-proxy defense [Barracks missing / proxy signs scouted]`
 
 Avoid vague labels like `Defend`, `Standard`, `Aggro`, `Macro`.
 
 For popular named builds, prefer the common online name in the response/build portion:
 
-- `Early 3rd Command Center [3CC reaper expand]`
-- `1-1-1 cloak pressure [cloak banshee]`
-- `Proxy commitment [proxy 3-Rax reaper]`
+- `3CC reaper expand [early 3rd Command Center]`
+- `Cloak banshee [1-1-1 cloak pressure]`
+- `Proxy 3-Rax reaper [proxy commitment]`
 
 ### Exact step action wording
 
