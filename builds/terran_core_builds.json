@@ -10,15 +10,15 @@
         "time": "0:24",
         "decision": {
           "1": {
-            "label": "CC-first bio economy [pre-game fast-economy plan / opponent unlikely to punish]",
+            "label": "CC First [greedy economy; punishable]",
             "target": "cc_first_bio_tvp_byun_optional_after_depot"
           },
           "2": {
-            "label": "Standard/proxy Barracks set [pre-game Barracks-first plan]",
+            "label": "Barracks First [standard flexible opener]",
             "target": "barracks_first_location_gate"
           },
           "3": {
-            "label": "Gas-first tech/all-in set [pre-game early-tech or one-base plan]",
+            "label": "Gas First [fast tech or all-in]",
             "target": "gas_first_refinery_core"
           }
         }
@@ -32,11 +32,11 @@
         "time": "0:34",
         "decision": {
           "1": {
-            "label": "Macro/pressure expand set [at-home Barracks placement]",
+            "label": "At-home Barracks [safe expand pressure]",
             "target": "at_home_barracks_refinery_core"
           },
           "2": {
-            "label": "2-Rax proxy pressure [proxy/hidden Barracks placement]",
+            "label": "Proxy 2-Rax [hidden early pressure]",
             "target": "proxy_2rax_pressure_core"
           }
         }
@@ -52,11 +52,11 @@
         "time": "0:50",
         "decision": {
           "1": {
-            "label": "TvT two-gas Reaper Factory [second Refinery before expansion]",
+            "label": "2-Gas Reaper Factory [TvT map control]",
             "target": "tvt_two_gas_reaper_factory_core"
           },
           "2": {
-            "label": "One-gas expand set [delayed second gas / natural expansion first]",
+            "label": "One-Gas Expand [standard macro]",
             "target": "one_gas_expand_first_unit_gate"
           }
         }
@@ -70,11 +70,11 @@
         "time": "1:24",
         "decision": {
           "1": {
-            "label": "TvP Medivac-Cyclone pressure [first Barracks unit Marine / early Reactor follow-up]",
+            "label": "Medivac-Cyclone [TvP early pressure]",
             "target": "tvp_clem_medivac_cyclone_pressure_after_core"
           },
           "2": {
-            "label": "Reaper-expand macro/pressure set [first Barracks unit Reaper]",
+            "label": "Reaper Expand [safe scout into macro]",
             "target": "reaper_expand_core"
           }
         }
@@ -91,11 +91,11 @@
         "time": "1:46",
         "decision": {
           "1": {
-            "label": "TvZ +1 3-Rax pressure [early Engineering Bay after natural CC]",
+            "label": "+1 3-Rax Pressure [TvZ early timing]",
             "target": "tvz_3rax_pressure_after_reaper_expand"
           },
           "2": {
-            "label": "Reaper-expand tech macro [normal Depot/Factory follow-up after natural CC]",
+            "label": "Standard Tech [normal expand follow-up]",
             "target": "normal_reaper_expand_tech_core"
           }
         }
@@ -112,11 +112,11 @@
         "time": "2:18",
         "decision": {
           "1": {
-            "label": "TvP 3-1-1 Tank/Raven macro [bunker/second gas safety]",
+            "label": "Safe 3-1-1 Raven [TvP safe macro]",
             "target": "tvp_safe_standard_3_1_1_raven_tank_after_core"
           },
           "2": {
-            "label": "TvZ fast 3CC Hellion macro [third CC before heavy tech]",
+            "label": "Fast 3CC Hellion [TvZ greedy macro]",
             "target": "tvz_fast3cc_hellion_core"
           }
         }
@@ -133,11 +133,11 @@
         "time": "2:55",
         "decision": {
           "1": {
-            "label": "TvZ fast 3CC bio-mine [4-Hellion / first Starport unit Liberator]",
+            "label": "4-Hellion Liberator [bio-mine]",
             "target": "tvz_clem_fast3cc_hellion_liberator_bio_mine_after_core"
           },
           "2": {
-            "label": "TvZ fast 3CC bio-tank [6-Hellion / first Starport units Cloak Banshees]",
+            "label": "6-Hellion Banshee [bio-tank]",
             "target": "tvz_clem_fast3cc_hellion_banshee_bio_tank_after_core"
           }
         }
@@ -157,11 +157,11 @@
         "time": "2:12",
         "decision": {
           "1": {
-            "label": "TvT safe Factory Expand Raven 3CC [Factory Tech Lab / Cyclone-Tank safety]",
+            "label": "Safe Factory Expand [Cyclone-Tank]",
             "target": "tvt_safe_factory_expand_3cc_raven_tank_after_core"
           },
           "2": {
-            "label": "TvT FoxeR Raven timing [earlier pressure with 3 Reaper/2 Hellion]",
+            "label": "FoxeR Raven Timing [3-Reaper pressure]",
             "target": "tvt_foxer_3reaper_2hellion_raven_after_core"
           }
         }
@@ -178,11 +178,11 @@
         "time": "1:20",
         "decision": {
           "1": {
-            "label": "TvP proxy 2-Rax Marauder [Tech Labs first / Concussive Shells]",
+            "label": "Proxy 2-Rax Marauder [TvP early punish]",
             "target": "proxy_2rax_marauder_tvp_after_core"
           },
           "2": {
-            "label": "TvT proxy 2-Rax Reaper [Reaper first / second gas follow-up]",
+            "label": "Proxy 2-Rax Reaper [TvT map control]",
             "target": "proxy_2rax_reaper_tvt_uthermal_after_core"
           }
         }
@@ -198,11 +198,11 @@
         "time": "0:54",
         "decision": {
           "1": {
-            "label": "TvZ gas-first mech [no immediate second gas / expand from gas-first]",
+            "label": "Gas-First Mech [TvZ transition]",
             "target": "tvz_mech_6_banshee_first_steps_after_core"
           },
           "2": {
-            "label": "One-base 1-1-1 all-in set [immediate second gas / no natural before tech]",
+            "label": "One-Base 1-1-1 [two-gas all-in]",
             "target": "one_base_two_gas_111_core"
           }
         }
@@ -217,11 +217,11 @@
         "time": "1:30",
         "decision": {
           "1": {
-            "label": "Tank/Viking/Liberator air-control all-in [Factory before Barracks add-on]",
+            "label": "Tank/Viking/Liberator [air-control all-in]",
             "target": "one_base_tank_viking_liberator_push_after_core"
           },
           "2": {
-            "label": "Cloak Banshee/Tank all-in [fast Barracks Reactor into Cloak]",
+            "label": "Cloak Banshee/Tank [one-base tech all-in]",
             "target": "one_base_cloak_banshee_tank_allin_after_core"
           }
         }

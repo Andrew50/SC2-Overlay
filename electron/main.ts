@@ -18,6 +18,10 @@ let runtimeDataRoot = "";
 let runtimeSchemaRoot = "";
 const CHOOSE_REPEAT_GUARD_MS = 300;
 const lastChooseBroadcastAtMs: Partial<Record<ControlAction, number>> = {};
+const OVERLAY_REASSERT_DELAYS_MS = [0, 50, 250, 1000];
+const OVERLAY_REASSERT_INTERVAL_MS = 2000;
+let overlayReassertTimeouts: NodeJS.Timeout[] = [];
+let overlayReassertInterval: NodeJS.Timeout | null = null;
 
 const isLinuxWayland = process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland";
 const electronMajor = Number.parseInt(process.versions.electron.split(".")[0] ?? "0", 10);
@@ -84,12 +88,10 @@ function toggleMainWindowVisibility(): boolean {
   }
   if (mainWindow.isVisible()) {
     mainWindow.hide();
+    refreshOverlayReassertLoop();
     return false;
   }
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
-  }
-  mainWindow.show();
+  showMainWindow();
   return true;
 }
 
@@ -97,19 +99,110 @@ function showMainWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
+  showOverlayWindow(mainWindow);
+}
+
+function clearOverlayReassertTimeouts(): void {
+  for (const timeout of overlayReassertTimeouts) {
+    clearTimeout(timeout);
   }
-  if (!mainWindow.isVisible()) {
-    mainWindow.show();
+  overlayReassertTimeouts = [];
+}
+
+function stopOverlayReassertLoop(): void {
+  if (!overlayReassertInterval) {
+    return;
   }
+  clearInterval(overlayReassertInterval);
+  overlayReassertInterval = null;
+}
+
+function setOverlayAlwaysOnTop(window: BrowserWindow, enabled: boolean): void {
+  if (process.platform === "win32" || process.platform === "darwin") {
+    window.setAlwaysOnTop(enabled, enabled ? "screen-saver" : "normal");
+    return;
+  }
+  window.setAlwaysOnTop(enabled);
 }
 
 function applyWindowOverlayOptions(window: BrowserWindow, config: AppConfig): void {
-  if (config.window.clickThrough) {
-    window.setIgnoreMouseEvents(true, { forward: true });
-  }
+  window.setIgnoreMouseEvents(true, { forward: true });
   window.setOpacity(config.window.opacity);
+  if (process.platform === "win32" || process.platform === "darwin") {
+    window.setFocusable(false);
+  }
+  if (process.platform === "darwin") {
+    window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    window.setFullScreenable(false);
+  } else if (process.platform === "linux") {
+    window.setVisibleOnAllWorkspaces(true);
+  }
+  setOverlayAlwaysOnTop(window, config.window.alwaysOnTop);
+}
+
+function reassertOverlayWindow(reason: string): void {
+  if (!mainWindow || mainWindow.isDestroyed() || !initialData || !mainWindow.isVisible()) {
+    return;
+  }
+  applyWindowOverlayOptions(mainWindow, initialData.config);
+  if (initialData.config.window.alwaysOnTop && !(process.platform === "linux" && isLinuxWayland)) {
+    mainWindow.moveTop();
+  }
+  console.log(`Reasserted overlay window state (${reason}).`);
+}
+
+function scheduleOverlayReassert(reason: string): void {
+  clearOverlayReassertTimeouts();
+  for (const delayMs of OVERLAY_REASSERT_DELAYS_MS) {
+    const timeout = setTimeout(() => {
+      reassertOverlayWindow(`${reason}:${delayMs}ms`);
+    }, delayMs);
+    overlayReassertTimeouts.push(timeout);
+  }
+}
+
+function refreshOverlayReassertLoop(): void {
+  stopOverlayReassertLoop();
+  if (!mainWindow || mainWindow.isDestroyed() || !initialData) {
+    return;
+  }
+  if (!initialData.config.window.alwaysOnTop || !mainWindow.isVisible()) {
+    return;
+  }
+  overlayReassertInterval = setInterval(() => {
+    reassertOverlayWindow("interval");
+  }, OVERLAY_REASSERT_INTERVAL_MS);
+}
+
+function showOverlayWindow(window: BrowserWindow): void {
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  if (!window.isVisible()) {
+    if (process.platform === "linux" && isLinuxWayland) {
+      window.show();
+    } else {
+      window.showInactive();
+    }
+  }
+  scheduleOverlayReassert("show");
+  refreshOverlayReassertLoop();
+}
+
+function attachOverlayWindowHandlers(window: BrowserWindow): void {
+  const schedule = (reason: string): void => {
+    scheduleOverlayReassert(reason);
+    refreshOverlayReassertLoop();
+  };
+
+  window.on("show", () => schedule("show-event"));
+  window.on("hide", () => {
+    clearOverlayReassertTimeouts();
+    refreshOverlayReassertLoop();
+  });
+  window.on("restore", () => schedule("restore"));
+  window.on("blur", () => schedule("blur"));
+  window.webContents.on("did-finish-load", () => schedule("did-finish-load"));
 }
 
 function clampWindowAxis(axis: number, size: number, min: number, span: number): number {
@@ -171,6 +264,7 @@ function createMainWindow(config: AppConfig): BrowserWindow {
     }
   });
   applyWindowOverlayOptions(browserWindow, config);
+  attachOverlayWindowHandlers(browserWindow);
   return browserWindow;
 }
 
@@ -388,6 +482,8 @@ function applyDynamicConfig(config: AppConfig): void {
     return;
   }
   applyWindowOverlayOptions(mainWindow, config);
+  scheduleOverlayReassert("config-reload");
+  refreshOverlayReassertLoop();
 }
 
 function reloadAppData(): InitialAppData {
@@ -481,6 +577,7 @@ async function bootstrap(): Promise<void> {
   mainWindow = createMainWindow(initialData.config);
   setupIpc();
   await loadRenderer(mainWindow);
+  refreshOverlayReassertLoop();
 }
 
 app.whenReady().then(() => {
@@ -507,13 +604,12 @@ app.on("second-instance", () => {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
-  if (mainWindow.isMinimized()) {
-    mainWindow.restore();
-  }
-  mainWindow.focus();
+  showMainWindow();
 });
 
 app.on("will-quit", () => {
+  clearOverlayReassertTimeouts();
+  stopOverlayReassertLoop();
   globalShortcut.unregisterAll();
 });
 

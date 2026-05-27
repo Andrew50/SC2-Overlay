@@ -93,10 +93,6 @@ interface ResolvedBuildStepRef {
 const els = {
   timerValue: document.querySelector<HTMLElement>("#timer-value"),
   branchValue: document.querySelector<HTMLElement>("#branch-value"),
-  setupControls: document.querySelector<HTMLElement>("#setup-controls"),
-  openBuildsButton: document.querySelector<HTMLButtonElement>("#open-builds-button"),
-  reloadDataButton: document.querySelector<HTMLButtonElement>("#reload-data-button"),
-  reloadStatus: document.querySelector<HTMLElement>("#reload-status"),
   actionQueue: document.querySelector<HTMLElement>("#action-queue"),
   upcomingDecisions: document.querySelector<HTMLElement>("#upcoming-decisions"),
   decisionContent: document.querySelector<HTMLElement>("#decision-content"),
@@ -176,15 +172,6 @@ function formatRaceLabel(playerRace?: PlayerRace): string {
     return "Select Your Race";
   }
   return playerRace.toUpperCase();
-}
-
-function setReloadStatus(message: string, isError = false): void {
-  const reloadStatus = els.reloadStatus;
-  if (!reloadStatus) {
-    return;
-  }
-  reloadStatus.textContent = message;
-  reloadStatus.classList.toggle("is-error", isError);
 }
 
 function applyUiScale(fontScale: number, scale: number): void {
@@ -1042,8 +1029,6 @@ function render(state: AppState): void {
   state.currentBranchLabel = getFarthestResolvedBranchLabel(state);
   timerValue.textContent = formatTimerDisplay(state.timerSeconds);
   branchValue.textContent = state.currentBranchLabel;
-  els.setupControls?.classList.toggle("is-hidden", state.timerStarted);
-  els.reloadStatus?.classList.toggle("is-hidden", state.timerStarted);
   upcomingDecisions.innerHTML = "";
   decisionContent.innerHTML = "";
 
@@ -1458,106 +1443,6 @@ function setupFocusedFallback(state: AppState): void {
   });
 }
 
-function applyReloadedData(state: AppState, data: InitialAppData): void {
-  const previousPlayerRace = state.selectedPlayerRace;
-  const previousTimerSeconds = state.timerSeconds;
-  const previousTimerPaused = state.timerPaused;
-  const hadStarted = state.timerStarted;
-
-  state.data = data;
-  applyUiScale(data.config.ui.fontScale, data.config.ui.scale);
-  applyTimerConfig(data.config.timer);
-
-  if (hadStarted) {
-    const nextOption =
-      data.raceOptions.find((option) => option.playerRace === previousPlayerRace) ?? data.raceOptions[0];
-    if (nextOption) {
-      activateGraphForRace(state, nextOption);
-      state.timerSeconds = previousTimerSeconds;
-      state.timerPaused = previousTimerPaused;
-      alignProgressToGameTime(state);
-      render(state);
-      return;
-    }
-  }
-
-  state.activeGraph = undefined;
-  state.selectedPlayerRace = undefined;
-  state.currentNodeId = undefined;
-  state.currentStepIndex = 0;
-  state.currentActionKey = undefined;
-  state.currentActionRangeStartSeconds = undefined;
-  state.timerSeconds = 0;
-  state.timerPaused = false;
-  state.timerStarted = false;
-  state.currentBranchLabel = formatRaceLabel();
-  clearPendingDecisionQueue(state);
-  state.decisionInputBlockedUntilMs = undefined;
-  state.lastQueuedChooseBranch = undefined;
-  state.lastQueuedChooseAtMs = undefined;
-  state.rememberedDecisionChoices = {};
-  state.jumpHistory = [];
-  clearBranchAutoSelect(state);
-  render(state);
-}
-
-function setupReloadControl(state: AppState): void {
-  const reloadButton = els.reloadDataButton;
-  const openBuildsButton = els.openBuildsButton;
-  if (!reloadButton || !openBuildsButton) {
-    return;
-  }
-  setReloadStatus("");
-
-  const triggerReload = async (): Promise<void> => {
-    if (state.timerStarted) {
-      return;
-    }
-    reloadButton.disabled = true;
-    setReloadStatus("Reloading data...");
-    try {
-      const data = await window.overlayApi.reloadData();
-      applyReloadedData(state, data);
-      setReloadStatus("Reloaded config/builds.");
-    } catch (error) {
-      setReloadStatus(`Reload failed: ${String(error)}`, true);
-    } finally {
-      reloadButton.disabled = false;
-    }
-  };
-
-  const triggerOpenBuildsDirectory = async (): Promise<void> => {
-    if (state.timerStarted) {
-      return;
-    }
-    openBuildsButton.disabled = true;
-    setReloadStatus("Opening builds folder...");
-    try {
-      await window.overlayApi.openBuildsDirectory();
-      setReloadStatus("Opened builds folder.");
-    } catch (error) {
-      setReloadStatus(`Open builds failed: ${String(error)}`, true);
-    } finally {
-      openBuildsButton.disabled = false;
-    }
-  };
-
-  reloadButton.addEventListener("click", () => {
-    void triggerReload();
-  });
-  openBuildsButton.addEventListener("click", () => {
-    void triggerOpenBuildsDirectory();
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.key.toLowerCase() !== "r") {
-      return;
-    }
-    event.preventDefault();
-    void triggerReload();
-  });
-}
-
 function startTickLoop(state: AppState): void {
   window.setInterval(() => {
     if (!state.timerStarted) return;
@@ -1604,7 +1489,6 @@ async function main(): Promise<void> {
 
   render(state);
   setupFocusedFallback(state);
-  setupReloadControl(state);
   startTickLoop(state);
   window.overlayApi.onControlAction((action) => {
     debugNavigation("overlay control action received", { action });

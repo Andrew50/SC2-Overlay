@@ -203,27 +203,35 @@ Include matchup names in branch IDs only when needed for clarity and when that n
 
 Decision option labels should include both:
 
-- the **response/build direction**
-- the **scouted condition** in brackets
+- the **concrete build/branch** being selected
+- a short **purpose/matchup/condition** in brackets
 
 Format:
 
-- `<response type/build direction> [<scouted condition>]`
+- `<Build Name> [<purpose>; <matchup/condition>]`
 
 Examples:
 
-- `Defensive tank/bunker [no 3rd Hatchery / Roach Warren scouted]`
-- `Bio-mine anti-air [fast Lair / Spire signs scouted]`
-- `Marine/turret/raven defense [Stargate / Oracle scouted]`
-- `Anti-proxy defense [Barracks missing / proxy signs scouted]`
+- `CC First [greedy economy; mostly vs Zerg]`
+- `Barracks First [standard flexible opener]`
+- `Gas First [fast tech or all-in]`
+- `Proxy 2-Rax [hidden early pressure]`
+- `Reaper Expand [safe scout into macro]`
+- `Fast 3CC Hellion [TvZ greedy macro]`
 
 Avoid vague labels like `Defend`, `Standard`, `Aggro`, `Macro`.
 
-For popular named builds, prefer the common online name in the response/build portion:
+Avoid internal structure words in visible labels:
 
-- `3CC reaper expand [early 3rd Command Center]`
-- `Cloak banshee [1-1-1 cloak pressure]`
-- `Proxy 3-Rax reaper [proxy commitment]`
+- Bad: `Pre-game fast-economy plan [CC First]`
+- Bad: `Macro/pressure expand set [at-home Barracks]`
+- Bad: `One-gas expand set [delayed second gas]`
+- Good: `CC First [greedy economy; punishable]`
+- Good: `At-home Barracks [safe expand pressure]`
+- Good: `One-Gas Expand [standard macro]`
+
+The main name should answer: **"What am I choosing?"**
+The brackets should answer: **"Why would I choose this?"**
 
 ### Exact step action wording
 
