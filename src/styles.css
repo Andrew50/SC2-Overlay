@@ -55,7 +55,7 @@ body {
 
 .top-line span {
   color: #9ec2ff;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -107,11 +107,11 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: rgba(23, 28, 41, 0.9);
   border: 1px solid rgba(136, 175, 241, 0.25);
   border-radius: 8px;
-  padding: 9px 10px;
+  padding: 8px 9px;
   min-height: 40px;
   overflow: hidden;
 }
@@ -158,13 +158,13 @@ body {
 
 .action-meta {
   color: #c8daff;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   white-space: nowrap;
   justify-self: end;
 }
 
 .action-text {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-align: left;
   min-width: 0;
   overflow: hidden;

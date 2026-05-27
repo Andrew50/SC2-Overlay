@@ -1,8 +1,8 @@
 {
   "window": {
-    "width": 336,
+    "width": 420,
     "height": 192,
-    "minWidth": 200,
+    "minWidth": 260,
     "minHeight": 130,
     "monitor": 2,
     "x": 5,
@@ -49,7 +49,7 @@
   "ui": {
     "mode": "minimal",
     "showNextCount": 5,
-    "fontScale": 0.9,
+    "fontScale": 0.82,
     "scale": 0.9
   },
   "data": {
