@@ -9,14 +9,22 @@
   <body>
     <div id="app">
       <header class="toolbar">
-        <div class="toolbar-title">
-          <h1>Build Orders</h1>
+        <div class="toolbar-start">
+          <div class="toolbar-title">
+            <h1>Build Orders</h1>
+          </div>
+          <div id="race-tabs" class="race-tabs" role="tablist" aria-label="Player race"></div>
+          <div class="legend" aria-label="Node legend">
+            <span class="legend-item step">Build step</span>
+            <span class="legend-item branch">Branch point</span>
+            <span class="legend-item terminal">Terminal step</span>
+          </div>
         </div>
-        <div id="race-tabs" class="race-tabs" role="tablist" aria-label="Player race"></div>
-        <div class="legend" aria-label="Node legend">
-          <span class="legend-item step">Build step</span>
-          <span class="legend-item branch">Branch point</span>
-          <span class="legend-item terminal">Terminal step</span>
+        <div class="toolbar-actions">
+          <button type="button" id="practice-btn" class="toolbar-btn practice-btn" disabled>
+            Practice this build
+          </button>
+          <button type="button" id="back-to-overlay-btn" class="toolbar-btn is-hidden">Back to overlay</button>
         </div>
       </header>
 

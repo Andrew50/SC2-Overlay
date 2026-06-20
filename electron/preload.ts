@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ControlAction, InitialAppData } from "../src/core/types";
+import type { ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 
 type UnsubscribeFn = () => void;
 
@@ -12,6 +12,11 @@ const api = {
   showOverlay: (): Promise<void> => ipcRenderer.invoke("app:show-overlay"),
   hideOverlay: (): Promise<void> => ipcRenderer.invoke("app:hide-overlay"),
   isOverlayVisible: (): Promise<boolean> => ipcRenderer.invoke("app:is-overlay-visible"),
+  openViewer: (): Promise<void> => ipcRenderer.invoke("app:open-viewer"),
+  setClickThrough: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke("app:set-click-through", enabled),
+  startPractice: (config: PracticeSessionConfig): Promise<void> =>
+    ipcRenderer.invoke("app:start-practice", config),
   debugLog: (message: string, details?: unknown): void => {
     ipcRenderer.send("app:debug-log", message, details);
   },
@@ -21,6 +26,13 @@ const api = {
     };
     ipcRenderer.on("control-action", listener);
     return () => ipcRenderer.removeListener("control-action", listener);
+  },
+  onPracticeSession: (callback: (config: PracticeSessionConfig) => void): UnsubscribeFn => {
+    const listener = (_event: Electron.IpcRendererEvent, config: PracticeSessionConfig) => {
+      callback(config);
+    };
+    ipcRenderer.on("practice-session", listener);
+    return () => ipcRenderer.removeListener("practice-session", listener);
   }
 };
 

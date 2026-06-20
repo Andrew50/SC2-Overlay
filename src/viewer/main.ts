@@ -1,7 +1,8 @@
 import cytoscape, { type Core, type ElementDefinition } from "cytoscape";
 import dagre from "cytoscape-dagre";
-import type { BuildStep, InitialAppData, PlayerRaceOption, ResolvedBuildGraph } from "../core/types";
+import type { AppConfig, BuildStep, InitialAppData, PlayerRaceOption, ResolvedBuildGraph } from "../core/types";
 import { collectBuildOrders, type BuildOrderPath } from "../core/graph-traversal";
+import { practiceConfigFromPath } from "../core/practice-session";
 import {
   buildStepGraph,
   collectAncestors,
@@ -18,6 +19,8 @@ const pathSelectorEl = document.querySelector<HTMLElement>("#path-selector");
 const buildOrderEl = document.querySelector<HTMLElement>("#build-order");
 const fitBtn = document.querySelector<HTMLButtonElement>("#fit-btn");
 const resetBtn = document.querySelector<HTMLButtonElement>("#reset-btn");
+const backToOverlayBtn = document.querySelector<HTMLButtonElement>("#back-to-overlay-btn");
+const practiceBtn = document.querySelector<HTMLButtonElement>("#practice-btn");
 const cyContainer = document.getElementById("cy");
 
 let appData: InitialAppData | null = null;
@@ -37,6 +40,33 @@ const nodeColors: Record<string, string> = {
   branch: "#7c3aed",
   terminal: "#15803d"
 };
+
+function applyViewerScale(ui: AppConfig["ui"]): void {
+  const fontScale = Number.isFinite(ui.fontScale) ? Math.max(0.75, ui.fontScale) : 1;
+  const configuredScale = Number.isFinite(ui.scale) ? Math.max(0.75, ui.scale) : 1;
+  const viewportFactor = Math.min(1, window.innerHeight / 720, window.innerWidth / 1100);
+  const combinedScale = fontScale * configuredScale * viewportFactor;
+  document.documentElement.style.fontSize = `${combinedScale}rem`;
+  document.documentElement.style.setProperty("--content-scale", viewportFactor.toFixed(3));
+}
+
+function setupLayoutResize(): void {
+  const refreshLayout = (): void => {
+    if (appData) {
+      applyViewerScale(appData.config.ui);
+    }
+    cy?.resize();
+  };
+
+  window.addEventListener("resize", refreshLayout);
+
+  if (layoutEl) {
+    const observer = new ResizeObserver(() => {
+      cy?.resize();
+    });
+    observer.observe(layoutEl);
+  }
+}
 
 function isEditableTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
@@ -404,9 +434,17 @@ function renderBuildOrder(steps: BuildStep[]): void {
   `;
 }
 
+function updatePracticeButtonState(): void {
+  if (!practiceBtn) {
+    return;
+  }
+  practiceBtn.disabled = selectedPathIndex === null;
+}
+
 function clearPathSelection(): void {
   selectedPathIndex = null;
   setPathCheckboxes(null);
+  updatePracticeButtonState();
   if (buildOrderEl) {
     buildOrderEl.className = "build-order muted";
     buildOrderEl.textContent = "Select a build path to view its steps.";
@@ -472,6 +510,7 @@ function selectPath(index: number): void {
   setPathCheckboxes(index);
   renderBuildOrder(path.steps);
   highlightPath(path);
+  updatePracticeButtonState();
 }
 
 function syncSidebarFromStep(stepId: string, buildNodeId: string, stepIndex: number): void {
@@ -488,12 +527,14 @@ function syncSidebarFromStep(stepId: string, buildNodeId: string, stepIndex: num
       setPathCheckboxes(pathIndex);
       renderBuildOrder(matchingPaths[0]!.steps);
       highlightPath(matchingPaths[0]!, stepId);
+      updatePracticeButtonState();
       return;
     }
   }
 
   selectedPathIndex = null;
   setPathCheckboxes(null);
+  updatePracticeButtonState();
 
   const representativePath = matchingPaths[0];
   if (!representativePath) {
@@ -594,6 +635,7 @@ function mountGraph(option: PlayerRaceOption): void {
   activeRace = option;
   activePaths = collectBuildOrders(option.graph);
   selectedPathIndex = null;
+  updatePracticeButtonState();
   activeStepGraph = buildStepGraph(option.graph);
   const elements = activeStepGraph.elements as ElementDefinition[];
 
@@ -670,16 +712,32 @@ function renderRaceTabs(options: PlayerRaceOption[]): void {
   });
 }
 
+async function loadInitialData(): Promise<InitialAppData> {
+  if (window.overlayApi) {
+    return window.overlayApi.getInitialData();
+  }
+
+  const response = await fetch("/api/graphs");
+  const payload = (await response.json()) as InitialAppData | { error: string };
+
+  if (!response.ok || "error" in payload) {
+    throw new Error("error" in payload ? payload.error : `Request failed (${response.status})`);
+  }
+
+  return payload;
+}
+
 async function bootstrap(): Promise<void> {
   try {
-    const response = await fetch("/api/graphs");
-    const payload = (await response.json()) as InitialAppData | { error: string };
-
-    if (!response.ok || "error" in payload) {
-      throw new Error("error" in payload ? payload.error : `Request failed (${response.status})`);
+    if (backToOverlayBtn && window.overlayApi) {
+      backToOverlayBtn.classList.remove("is-hidden");
+      backToOverlayBtn.addEventListener("click", () => {
+        void window.overlayApi.showOverlay();
+      });
     }
 
-    appData = payload;
+    appData = await loadInitialData();
+    applyViewerScale(appData.config.ui);
     renderRaceTabs(appData.raceOptions);
     mountGraph(appData.raceOptions[0]);
   } catch (error) {
@@ -699,6 +757,21 @@ resetBtn?.addEventListener("click", () => {
   resetSelection();
 });
 
+practiceBtn?.addEventListener("click", () => {
+  if (!activeRace || selectedPathIndex === null || !window.overlayApi) {
+    return;
+  }
+
+  const path = activePaths[selectedPathIndex];
+  if (!path) {
+    return;
+  }
+
+  const config = practiceConfigFromPath(activeRace, path);
+  void window.overlayApi.startPractice(config);
+});
+
 setupGraphNavigation();
 setupSidebarResize();
+setupLayoutResize();
 void bootstrap();

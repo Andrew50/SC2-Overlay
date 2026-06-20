@@ -11,6 +11,25 @@
       <header class="top-line">
         <strong id="timer-value">00:00</strong>
         <span id="branch-value">Loading...</span>
+        <button
+          type="button"
+          id="open-viewer-btn"
+          class="open-viewer-btn"
+          title="Open build order viewer"
+          aria-label="Open build order viewer"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M4 5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm10 0v4h4M8 13h8M8 17h5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="open-viewer-label">Builds</span>
+        </button>
       </header>
 
       <section id="action-queue" class="action-queue"></section>

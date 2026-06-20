@@ -1,4 +1,4 @@
-import type { ControlAction, InitialAppData } from "./core/types";
+import type { ControlAction, InitialAppData, PracticeSessionConfig } from "./core/types";
 
 declare global {
   interface Window {
@@ -11,8 +11,12 @@ declare global {
       showOverlay: () => Promise<void>;
       hideOverlay: () => Promise<void>;
       isOverlayVisible: () => Promise<boolean>;
+      openViewer: () => Promise<void>;
+      setClickThrough: (enabled: boolean) => Promise<void>;
+      startPractice: (config: PracticeSessionConfig) => Promise<void>;
       debugLog: (message: string, details?: unknown) => void;
       onControlAction: (callback: (action: ControlAction) => void) => () => void;
+      onPracticeSession: (callback: (config: PracticeSessionConfig) => void) => () => void;
     };
   }
 }

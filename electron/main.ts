@@ -4,15 +4,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { loadInitialData } from "../src/core/loader";
-import type { AppConfig, ControlAction, InitialAppData } from "../src/core/types";
+import type { AppConfig, ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RENDERER_DIST_INDEX = path.resolve(THIS_DIR, "../dist/index.html");
+const RENDERER_DIST_VIEWER = path.resolve(THIS_DIR, "../dist/viewer.html");
 const RENDERER_SOURCE_INDEX = path.resolve(THIS_DIR, "../src/index.html");
 const PRELOAD_MJS = path.resolve(THIS_DIR, "preload.mjs");
 const PRELOAD_JS = path.resolve(THIS_DIR, "preload.js");
 
 let mainWindow: BrowserWindow | null = null;
+let viewerWindow: BrowserWindow | null = null;
 let initialData: InitialAppData | null = null;
 let runtimeDataRoot = "";
 let runtimeSchemaRoot = "";
@@ -58,6 +60,10 @@ function resolveRendererIndex(): string {
   return existsSync(RENDERER_DIST_INDEX) ? RENDERER_DIST_INDEX : RENDERER_SOURCE_INDEX;
 }
 
+function resolveViewerIndex(): string {
+  return existsSync(RENDERER_DIST_VIEWER) ? RENDERER_DIST_VIEWER : path.resolve(THIS_DIR, "../viewer.html");
+}
+
 function broadcastControlAction(action: ControlAction): void {
   const now = Date.now();
   const isChooseAction = action === "choose1" || action === "choose2" || action === "choose3";
@@ -99,7 +105,23 @@ function showMainWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
+  hideViewerWindow();
   showOverlayWindow(mainWindow);
+}
+
+function hideViewerWindow(): void {
+  if (!viewerWindow || viewerWindow.isDestroyed()) {
+    return;
+  }
+  viewerWindow.hide();
+}
+
+function hideMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  mainWindow.hide();
+  refreshOverlayReassertLoop();
 }
 
 function clearOverlayReassertTimeouts(): void {
@@ -126,7 +148,11 @@ function setOverlayAlwaysOnTop(window: BrowserWindow, enabled: boolean): void {
 }
 
 function applyWindowOverlayOptions(window: BrowserWindow, config: AppConfig): void {
-  window.setIgnoreMouseEvents(true, { forward: true });
+  if (config.window.clickThrough) {
+    window.setIgnoreMouseEvents(true, { forward: true });
+  } else {
+    window.setIgnoreMouseEvents(false);
+  }
   window.setOpacity(config.window.opacity);
   if (process.platform === "win32" || process.platform === "darwin") {
     window.setFocusable(false);
@@ -274,6 +300,59 @@ async function loadRenderer(window: BrowserWindow): Promise<void> {
     return;
   }
   await window.loadFile(resolveRendererIndex());
+}
+
+function createViewerWindow(): BrowserWindow {
+  const browserWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    show: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: resolvePreloadScript(),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  browserWindow.on("closed", () => {
+    if (viewerWindow === browserWindow) {
+      viewerWindow = null;
+    }
+    showMainWindow();
+  });
+
+  return browserWindow;
+}
+
+async function loadViewer(window: BrowserWindow): Promise<void> {
+  if (process.env.VITE_DEV_SERVER_URL) {
+    const viewerUrl = new URL("/viewer.html", process.env.VITE_DEV_SERVER_URL).toString();
+    await window.loadURL(viewerUrl);
+    return;
+  }
+  await window.loadFile(resolveViewerIndex());
+}
+
+async function showViewerWindow(): Promise<void> {
+  if (!initialData) {
+    throw new Error("App data is not loaded");
+  }
+
+  hideMainWindow();
+
+  if (!viewerWindow || viewerWindow.isDestroyed()) {
+    viewerWindow = createViewerWindow();
+    await loadViewer(viewerWindow);
+  }
+
+  if (viewerWindow.isMinimized()) {
+    viewerWindow.restore();
+  }
+  viewerWindow.show();
+  viewerWindow.focus();
 }
 
 function registerGlobalHotkeys(config: AppConfig): void {
@@ -523,12 +602,36 @@ function setupIpc(): void {
   });
   ipcMain.handle("app:reload-data", () => reloadAppData());
   ipcMain.handle("app:toggle-overlay-visibility", () => toggleMainWindowVisibility());
-  ipcMain.handle("app:show-overlay", () => showMainWindow());
+  ipcMain.handle("app:show-overlay", () => {
+    showMainWindow();
+  });
   ipcMain.handle("app:hide-overlay", () => {
+    hideMainWindow();
+  });
+  ipcMain.handle("app:open-viewer", async () => {
+    await showViewerWindow();
+  });
+  ipcMain.handle("app:set-click-through", (_event, enabled: boolean) => {
+    if (!mainWindow || mainWindow.isDestroyed() || !initialData) {
+      return;
+    }
+    if (!initialData.config.window.clickThrough) {
+      mainWindow.setIgnoreMouseEvents(false);
+      return;
+    }
+    if (enabled) {
+      mainWindow.setIgnoreMouseEvents(true, { forward: true });
+      return;
+    }
+    mainWindow.setIgnoreMouseEvents(false);
+  });
+  ipcMain.handle("app:start-practice", (_event, config: PracticeSessionConfig) => {
+    hideViewerWindow();
+    showMainWindow();
     if (!mainWindow || mainWindow.isDestroyed()) {
       return;
     }
-    mainWindow.hide();
+    mainWindow.webContents.send("practice-session", config);
   });
   ipcMain.handle("app:is-overlay-visible", () => {
     if (!mainWindow || mainWindow.isDestroyed()) {

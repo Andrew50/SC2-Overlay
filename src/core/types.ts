@@ -164,3 +164,11 @@ export interface InitialAppData {
   config: AppConfig;
   raceOptions: PlayerRaceOption[];
 }
+
+export type DecisionBranchKey = "left" | "middle" | "right";
+
+export interface PracticeSessionConfig {
+  playerRace: PlayerRace;
+  rememberedChoices: Record<string, DecisionBranchKey>;
+  branchLabel: string;
+}

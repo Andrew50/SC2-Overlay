@@ -49,6 +49,38 @@ body {
   white-space: nowrap;
 }
 
+.open-viewer-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px 0 6px;
+  border: 1px solid rgba(111, 168, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(23, 28, 41, 0.9);
+  color: #9ec2ff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+}
+
+.open-viewer-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.open-viewer-label {
+  line-height: 1;
+}
+
+.open-viewer-btn:hover {
+  border-color: rgba(158, 194, 255, 0.75);
+  color: #dbeafe;
+}
+
 .is-hidden {
   display: none !important;
 }

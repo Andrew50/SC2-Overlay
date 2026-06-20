@@ -6,6 +6,7 @@ import type {
   InitialAppData,
   PlayerRace,
   PlayerRaceOption,
+  PracticeSessionConfig,
   ResolvedBuildGraph
 } from "./core/types";
 
@@ -44,6 +45,8 @@ interface AppState {
   jumpHistory: JumpHistoryEntry[];
   debugInputSequence: number;
   lastActionAtMsBySource: Partial<Record<string, number>>;
+  pendingPractice?: PracticeSessionConfig;
+  decisionsLocked: boolean;
 }
 
 interface JumpHistoryEntry {
@@ -93,6 +96,7 @@ interface ResolvedBuildStepRef {
 const els = {
   timerValue: document.querySelector<HTMLElement>("#timer-value"),
   branchValue: document.querySelector<HTMLElement>("#branch-value"),
+  openViewerBtn: document.querySelector<HTMLButtonElement>("#open-viewer-btn"),
   actionQueue: document.querySelector<HTMLElement>("#action-queue"),
   upcomingDecisions: document.querySelector<HTMLElement>("#upcoming-decisions"),
   decisionContent: document.querySelector<HTMLElement>("#decision-content"),
@@ -584,6 +588,44 @@ function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
   render(state);
 }
 
+function enterPracticeMode(state: AppState, config: PracticeSessionConfig): void {
+  resetStateToStart(state);
+  state.pendingPractice = config;
+  state.currentBranchLabel = config.branchLabel;
+  render(state);
+}
+
+function startPracticeSession(state: AppState): void {
+  const config = state.pendingPractice;
+  if (!config) {
+    return;
+  }
+
+  const option = state.data.raceOptions.find((raceOption) => raceOption.playerRace === config.playerRace);
+  if (!option) {
+    return;
+  }
+
+  state.pendingPractice = undefined;
+  state.activeGraph = option.graph;
+  state.selectedPlayerRace = option.playerRace;
+  state.currentNodeId = option.graph.rootNodeId;
+  state.currentStepIndex = 0;
+  state.currentActionKey = undefined;
+  state.currentActionRangeStartSeconds = undefined;
+  state.timerSeconds = -COUNTDOWN_DURATION_SECONDS;
+  state.timerPaused = false;
+  state.timerStarted = true;
+  state.decisionsLocked = true;
+  state.rememberedDecisionChoices = { ...config.rememberedChoices };
+  state.currentBranchLabel = config.branchLabel;
+  clearPendingDecisionQueue(state);
+  state.jumpHistory = [];
+  clearBranchAutoSelect(state);
+  alignProgressToGameTime(state);
+  render(state);
+}
+
 function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "right"): void {
   const node = getCurrentNode(state);
   if (!node || node.type !== "decision" || !state.currentNodeId) {
@@ -647,6 +689,8 @@ function resetStateToStart(state: AppState): void {
   state.lastQueuedChooseAtMs = undefined;
   state.rememberedDecisionChoices = {};
   state.jumpHistory = [];
+  state.pendingPractice = undefined;
+  state.decisionsLocked = false;
   clearBranchAutoSelect(state);
 }
 
@@ -1033,6 +1077,17 @@ function render(state: AppState): void {
   decisionContent.innerHTML = "";
 
   if (!state.timerStarted) {
+    if (state.pendingPractice) {
+      branchValue.textContent = state.pendingPractice.branchLabel;
+      setActionQueueHtml(
+        actionQueue,
+        renderSelectionRows(state, [{ key: "left", label: "Start" }])
+      );
+      maybeArmDecisionTimeout(state);
+      requestOverlayResize();
+      return;
+    }
+
     const choices = getPlayerRaceChoices(state);
     setActionQueueHtml(actionQueue, renderSelectionRows(state, choices));
     maybeArmDecisionTimeout(state);
@@ -1042,6 +1097,22 @@ function render(state: AppState): void {
 
   const node = getCurrentNode(state);
   if (node?.type === "decision") {
+    if (state.decisionsLocked) {
+      alignProgressToGameTime(state);
+      const refreshedNode = getCurrentNode(state);
+      if (refreshedNode?.type === "decision") {
+        requestOverlayResize();
+        return;
+      }
+      setActionQueueHtml(
+        actionQueue,
+        renderQueueBlocks(collectQueueItems(state, visibleQueueCount), visibleQueueCount)
+      );
+      clearBranchAutoSelect(state);
+      requestOverlayResize();
+      return;
+    }
+
     setActionQueueHtml(actionQueue, renderSelectionRows(state, getDecisionChoices(node)));
     maybeArmDecisionTimeout(state);
     requestOverlayResize();
@@ -1329,17 +1400,27 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
 
   if (!state.timerStarted) {
     if (chooseBranch) {
-      debugNavigation("handleAction selecting race", {
-        inputSeq,
-        source,
-        chooseBranch
-      });
-      selectPlayerRace(state, chooseBranch);
-      state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
-      debugNavigation("handleAction race selected and buffered", {
-        inputSeq,
-        blockedUntilMs: state.decisionInputBlockedUntilMs
-      });
+      if (state.pendingPractice) {
+        debugNavigation("handleAction starting practice session", {
+          inputSeq,
+          source,
+          chooseBranch
+        });
+        startPracticeSession(state);
+        state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
+      } else {
+        debugNavigation("handleAction selecting race", {
+          inputSeq,
+          source,
+          chooseBranch
+        });
+        selectPlayerRace(state, chooseBranch);
+        state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
+        debugNavigation("handleAction race selected and buffered", {
+          inputSeq,
+          blockedUntilMs: state.decisionInputBlockedUntilMs
+        });
+      }
     }
     return;
   }
@@ -1370,6 +1451,15 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
   }
 
   if (chooseBranch) {
+    if (state.decisionsLocked) {
+      debugNavigation("choose action ignored; decisions locked in practice mode", {
+        inputSeq,
+        source,
+        requestedBranch: chooseBranch,
+        ...getNavigationSnapshot(state)
+      });
+      return;
+    }
     if (typeof state.decisionInputBlockedUntilMs === "number" && now < state.decisionInputBlockedUntilMs) {
       debugNavigation("choose action ignored due to decision input buffer", {
         inputSeq,
@@ -1463,6 +1553,27 @@ function applyTimerConfig(config: AppConfig["timer"]): void {
   }
 }
 
+function setupViewerIcon(config: AppConfig): void {
+  const button = els.openViewerBtn;
+  if (!button) {
+    return;
+  }
+
+  if (config.window.clickThrough) {
+    document.addEventListener("mousemove", (event) => {
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const overButton =
+        target instanceof Element && Boolean(target.closest("#open-viewer-btn"));
+      void window.overlayApi.setClickThrough(!overButton);
+    });
+  }
+
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    void window.overlayApi.openViewer();
+  });
+}
+
 async function main(): Promise<void> {
   const data = await window.overlayApi.getInitialData();
   applyUiScale(data.config.ui.fontScale, data.config.ui.scale);
@@ -1484,15 +1595,20 @@ async function main(): Promise<void> {
     rememberedDecisionChoices: {},
     jumpHistory: [],
     debugInputSequence: 0,
-    lastActionAtMsBySource: {}
+    lastActionAtMsBySource: {},
+    decisionsLocked: false
   };
 
   render(state);
+  setupViewerIcon(data.config);
   setupFocusedFallback(state);
   startTickLoop(state);
   window.overlayApi.onControlAction((action) => {
     debugNavigation("overlay control action received", { action });
     handleAction(state, action, "overlay-control");
+  });
+  window.overlayApi.onPracticeSession((config) => {
+    enterPracticeMode(state, config);
   });
 }
 
