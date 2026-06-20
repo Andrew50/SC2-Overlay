@@ -152,7 +152,7 @@
       { "time": "1:27", "supply": 19, "action": "Orbital Command" },
       { "time": "1:30", "supply": 20, "action": "Supply Depot" },
       { "time": "1:42", "supply": 20, "action": "Factory" },
-      { "time": "1:58", "supply": 21, "action": "Reaper production [continue]" },
+      { "time": "1:58", "supply": 21, "action": "Reaper" },
       {
         "time": "2:12",
         "decision": {
@@ -507,10 +507,14 @@
       { "time": "3:31", "supply": 35, "action": "2x Marine" },
       { "time": "3:36", "supply": 38, "action": "Orbital Command [natural]" },
       { "time": "3:38", "supply": 38, "action": "Starport Tech Lab" },
+      { "time": "3:38", "supply": 38, "action": "Interference Matrix" },
       { "time": "3:40", "supply": 38, "action": "Refinery" },
+      { "time": "3:47", "supply": 40, "action": "Supply Depot" },
       { "time": "3:58", "supply": 41, "action": "Raven" },
       { "time": "4:25", "supply": 50, "action": "Command Center [third]" },
+      { "time": "4:25", "supply": 50, "action": "Supply Depot" },
       { "time": "4:31", "supply": 50, "action": "Siege Tank" },
+      { "time": "4:38", "supply": 54, "action": "Supply Depot" },
       { "time": "4:42", "supply": 55, "action": "Raven" },
       { "time": "4:55", "supply": 61, "action": "Refinery" },
       { "time": "5:03", "supply": 63, "action": "Siege Tank" },
