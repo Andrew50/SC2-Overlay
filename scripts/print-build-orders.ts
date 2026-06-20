@@ -1,18 +1,6 @@
 import { loadInitialData } from "../src/core/loader";
-import type { BuildNode, BuildStep, PlayerRaceOption, ResolvedBuildGraph } from "../src/core/types";
-
-interface DecisionChoice {
-  nodeId: string;
-  question: string;
-  label: string;
-  target: string;
-}
-
-interface BuildOrderPath {
-  nodePath: string[];
-  steps: BuildStep[];
-  choices: DecisionChoice[];
-}
+import { collectBuildOrders, type DecisionChoice } from "../src/core/graph-traversal";
+import type { BuildStep, PlayerRaceOption } from "../src/core/types";
 
 function formatStep(step: BuildStep): string {
   const segments: string[] = [];
@@ -28,63 +16,6 @@ function formatStep(step: BuildStep): string {
 
 function buildChoiceLabel(choice: DecisionChoice): string {
   return `${choice.question} -> ${choice.label} (${choice.target})`;
-}
-
-function collectBuildOrders(graph: ResolvedBuildGraph): BuildOrderPath[] {
-  const paths: BuildOrderPath[] = [];
-
-  const walk = (
-    nodeId: string,
-    nodePath: string[],
-    steps: BuildStep[],
-    choices: DecisionChoice[],
-    inPath: Set<string>
-  ): void => {
-    if (inPath.has(nodeId)) {
-      throw new Error(`Traversal cycle detected at node "${nodeId}" in graph "${graph.id}"`);
-    }
-
-    const node = graph.nodes[nodeId];
-    if (!node) {
-      throw new Error(`Missing node "${nodeId}" in graph "${graph.id}"`);
-    }
-
-    const nextNodePath = [...nodePath, nodeId];
-    const nextInPath = new Set(inPath);
-    nextInPath.add(nodeId);
-
-    if (node.type === "build") {
-      const nextSteps = [...steps, ...node.steps];
-      if (!node.next) {
-        paths.push({
-          nodePath: nextNodePath,
-          steps: nextSteps,
-          choices
-        });
-        return;
-      }
-      walk(node.next, nextNodePath, nextSteps, choices, nextInPath);
-      return;
-    }
-
-    const decisionBranches: Array<{ label: string; target: string }> = [node.left, node.middle];
-    if (node.right) {
-      decisionBranches.push(node.right);
-    }
-
-    for (const branch of decisionBranches) {
-      const choice: DecisionChoice = {
-        nodeId,
-        question: node.question,
-        label: branch.label,
-        target: branch.target
-      };
-      walk(branch.target, nextNodePath, steps, [...choices, choice], nextInPath);
-    }
-  };
-
-  walk(graph.rootNodeId, [], [], [], new Set<string>());
-  return paths;
 }
 
 function printRaceBuildOrders(option: PlayerRaceOption): void {

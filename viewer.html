@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Build Orders</title>
+    <link rel="stylesheet" href="/src/viewer/viewer.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="toolbar">
+        <div class="toolbar-title">
+          <h1>Build Orders</h1>
+        </div>
+        <div id="race-tabs" class="race-tabs" role="tablist" aria-label="Player race"></div>
+        <div class="legend" aria-label="Node legend">
+          <span class="legend-item step">Build step</span>
+          <span class="legend-item branch">Branch point</span>
+          <span class="legend-item terminal">Terminal step</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="graph-panel">
+          <div id="cy" class="cy-root"></div>
+          <div class="graph-controls">
+            <button type="button" id="fit-btn">Fit graph</button>
+            <button type="button" id="reset-btn">Reset selection</button>
+          </div>
+        </section>
+
+        <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
+
+        <aside class="sidebar">
+          <section class="sidebar-section path-selector-section">
+            <h2>Build paths</h2>
+            <div id="path-selector" class="path-selector"></div>
+          </section>
+
+          <section class="sidebar-section build-order-section">
+            <h2>Build order</h2>
+            <div id="build-order" class="build-order muted">Select a build path to view its steps.</div>
+          </section>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/viewer/main.ts"></script>
+  </body>
+</html>

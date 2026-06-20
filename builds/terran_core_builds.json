@@ -198,7 +198,7 @@
         "time": "0:54",
         "decision": {
           "1": {
-            "label": "Gas-First Mech [TvZ transition]",
+            "label": "6 Banshee Mech [TvZ gas-first opener]",
             "target": "tvz_mech_6_banshee_first_steps_after_core"
           },
           "2": {
@@ -326,23 +326,27 @@
   "tvz_mech_6_banshee_first_steps_after_core": {
     "steps": [
       { "time": "1:31", "supply": 20, "action": "Reaper" },
+      { "time": "1:31", "supply": 20, "action": "Orbital Command" },
       { "time": "1:45", "supply": 20, "action": "Command Center" },
       { "time": "1:52", "supply": 21, "action": "Factory" },
-      { "time": "2:06", "supply": 22, "action": "Barracks Reactor" },
+      { "time": "2:06", "supply": 22, "action": "Barracks Reactor [for Factory swap]" },
       { "time": "2:15", "supply": 22, "action": "Supply Depot" },
       { "time": "2:20", "supply": 23, "action": "Refinery" },
       { "time": "2:46", "supply": 24, "action": "Starport" },
+      { "time": "2:49", "supply": 28, "action": "Factory onto Barracks Reactor" },
       { "time": "2:49", "supply": 28, "action": "2x Hellion" },
-      { "time": "2:52", "supply": 29, "action": "Barracks Tech Lab" },
+      { "time": "2:52", "supply": 29, "action": "Barracks Tech Lab [for Starport swap]" },
+      { "time": "2:58", "supply": 29, "action": "Orbital Command [natural]" },
       { "time": "3:12", "supply": 34, "action": "2x Hellion" },
       { "time": "3:32", "supply": 39, "action": "Viking" },
       { "time": "3:34", "supply": 39, "action": "2x Hellion" },
       { "time": "3:45", "supply": 43, "action": "Supply Depot" },
-      { "time": "3:50", "supply": 45, "action": "Covert Banshee" },
+      { "time": "3:50", "supply": 45, "action": "Starport onto Barracks Tech Lab [for Banshee production]" },
       { "time": "4:00", "supply": 46, "action": "Banshee" },
       { "time": "4:05", "supply": 46, "action": "Supply Depot" },
       { "time": "4:15", "supply": 50, "action": "2x Hellion" },
       { "time": "4:20", "supply": 51, "action": "2x Supply Depot" },
+      { "time": "4:34", "supply": 57, "action": "Supply Depot" },
       { "time": "4:50", "supply": 63, "action": "Banshee" },
       { "time": "5:00", "supply": 63, "action": "Command Center [third]" },
       { "time": "5:05", "supply": 69, "action": "2x Hellion" },
@@ -352,6 +356,7 @@
       { "time": "5:55", "supply": 84, "action": "Engineering Bay" },
       { "time": "6:05", "supply": 85, "action": "2x Factory" },
       { "time": "6:10", "action": "[continue Factory setup; upgrades after Armories complete]" },
+      { "time": "6:12", "supply": 85, "action": "Orbital Command [third]" },
       { "time": "6:50", "supply": 104, "action": "2x Refinery" },
       { "time": "8:00", "action": "[take fourth base, add second Starport, keep Banshee and Tank production]" },
       { "time": "9:00", "action": "[attack with Hellion/Banshee/Tank mech if Zerg lacks tech units]" }
