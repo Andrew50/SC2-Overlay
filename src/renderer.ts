@@ -46,6 +46,7 @@ interface AppState {
   debugInputSequence: number;
   lastActionAtMsBySource: Partial<Record<string, number>>;
   pendingPractice?: PracticeSessionConfig;
+  practiceSession?: PracticeSessionConfig;
   decisionsLocked: boolean;
 }
 
@@ -594,8 +595,14 @@ function activateGraphForRace(state: AppState, option: PlayerRaceOption): void {
 
 function enterPracticeMode(state: AppState, config: PracticeSessionConfig): void {
   resetStateToStart(state);
+  state.practiceSession = config;
   state.pendingPractice = config;
   state.currentBranchLabel = config.branchLabel;
+  render(state);
+}
+
+function exitPracticeMode(state: AppState): void {
+  resetStateToStart(state);
   render(state);
 }
 
@@ -676,7 +683,9 @@ function chooseDecisionBranch(state: AppState, branch: "left" | "middle" | "righ
   render(state);
 }
 
-function resetStateToStart(state: AppState): void {
+function resetStateToStart(state: AppState, options: { preservePractice?: boolean } = {}): void {
+  const practiceConfig = options.preservePractice ? state.practiceSession : undefined;
+
   state.activeGraph = undefined;
   state.selectedPlayerRace = undefined;
   state.currentNodeId = undefined;
@@ -694,8 +703,15 @@ function resetStateToStart(state: AppState): void {
   state.rememberedDecisionChoices = {};
   state.jumpHistory = [];
   state.pendingPractice = undefined;
+  state.practiceSession = undefined;
   state.decisionsLocked = false;
   clearBranchAutoSelect(state);
+
+  if (practiceConfig) {
+    state.practiceSession = practiceConfig;
+    state.pendingPractice = practiceConfig;
+    state.currentBranchLabel = practiceConfig.branchLabel;
+  }
 }
 
 function isAtStartState(state: AppState): boolean {
@@ -1085,7 +1101,10 @@ function render(state: AppState): void {
       setBranchLabel(branchValue, state.pendingPractice.branchLabel);
       setActionQueueHtml(
         actionQueue,
-        renderSelectionRows(state, [{ key: "left", label: "Start" }])
+        renderSelectionRows(state, [
+          { key: "left", label: "Start" },
+          { key: "middle", label: "Exit" }
+        ])
       );
       maybeArmDecisionTimeout(state);
       requestOverlayResize();
@@ -1389,7 +1408,7 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
   });
 
   if (action === "reset") {
-    resetStateToStart(state);
+    resetStateToStart(state, { preservePractice: Boolean(state.practiceSession) });
     render(state);
     void (async () => {
       const isVisible = await window.overlayApi.isOverlayVisible();
@@ -1405,6 +1424,18 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
   if (!state.timerStarted) {
     if (chooseBranch) {
       if (state.pendingPractice) {
+        if (chooseBranch === "middle") {
+          debugNavigation("handleAction exiting practice session", {
+            inputSeq,
+            source,
+            chooseBranch
+          });
+          exitPracticeMode(state);
+          return;
+        }
+        if (chooseBranch !== "left") {
+          return;
+        }
         debugNavigation("handleAction starting practice session", {
           inputSeq,
           source,
