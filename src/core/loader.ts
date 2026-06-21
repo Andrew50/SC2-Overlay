@@ -277,7 +277,8 @@ function normalizeCompactBuild(
         type: "build",
         title: toDisplayName(branchName),
         steps: [],
-        next: resolveTarget(directTarget)
+        next: resolveTarget(directTarget),
+        disabled: branchEntry.disabled === true ? true : undefined
       } satisfies BuildNodeEntry;
       continue;
     }
@@ -346,7 +347,8 @@ function normalizeCompactBuild(
       type: "build",
       title: toDisplayName(branchName),
       steps: buildSteps,
-      next: nextDecisionId
+      next: nextDecisionId,
+      disabled: branchEntry.disabled === true ? true : undefined
     } satisfies BuildNodeEntry;
   }
 

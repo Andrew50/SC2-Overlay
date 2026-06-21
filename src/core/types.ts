@@ -85,6 +85,7 @@ export interface CompactBuildStep {
 export interface CompactBranchEntry {
   steps?: CompactBuildStep[];
   target?: string;
+  disabled?: boolean;
 }
 
 export type CompactBuildFile = Record<string, CompactBranchEntry>;
@@ -111,6 +112,7 @@ export interface BuildNodeEntry extends BuildNodeBase {
   type: "build";
   steps: BuildStep[];
   next?: string;
+  disabled?: boolean;
 }
 
 export interface DecisionBranch {

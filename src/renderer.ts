@@ -9,6 +9,12 @@ import type {
   PracticeSessionConfig,
   ResolvedBuildGraph
 } from "./core/types";
+import {
+  getAvailableOptions,
+  getAvailableRaces,
+  resolveDecision,
+  type ForcedChoices
+} from "./core/decision-resolution";
 
 const DEFAULT_VISIBLE_QUEUE_COUNT = 5;
 let BRANCH_AUTO_SELECT_SECONDS = 8;
@@ -47,7 +53,12 @@ interface AppState {
   lastActionAtMsBySource: Partial<Record<string, number>>;
   pendingPractice?: PracticeSessionConfig;
   practiceSession?: PracticeSessionConfig;
-  decisionsLocked: boolean;
+  // Ordered slots backing the currently presented decision rows, so F1/F2/F3
+  // map to the Nth available (non-disabled) option rather than a fixed slot.
+  presentedChoiceSlots?: DecisionChoice["key"][];
+  // Ordered race options backing the pre-start selection rows (after disabled
+  // races are collapsed away).
+  presentedRaceOptions?: PlayerRaceOption[];
 }
 
 interface JumpHistoryEntry {
@@ -313,6 +324,66 @@ function getRememberedDecisionChoice(
   return getDecisionChoices(node).find((choice) => choice.key === rememberedKey && Boolean(choice.target));
 }
 
+/**
+ * Forced choices pin a single branch per decision. Practice mode supplies the
+ * whole path here; live mode supplies none and relies on persisted disabled
+ * flags. This is the one knob that unifies practice and disabled-branch live
+ * mode behind the shared resolver.
+ */
+function getForcedChoices(state: AppState): ForcedChoices | undefined {
+  return state.practiceSession ? state.practiceSession.rememberedChoices : undefined;
+}
+
+/**
+ * When a decision has all but one option disabled it collapses: there is no
+ * choice to present, so traversal should silently follow the lone live option.
+ */
+function getAutoResolvedDecisionChoice(
+  state: AppState,
+  nodeId: string,
+  node: DecisionNodeEntry
+): DecisionChoice | undefined {
+  if (!state.activeGraph) {
+    return undefined;
+  }
+  const resolution = resolveDecision(state.activeGraph, nodeId, getForcedChoices(state));
+  if (resolution.presented || !resolution.autoResolved) {
+    return undefined;
+  }
+  const slot = resolution.autoResolved.slot;
+  return getDecisionChoices(node).find((choice) => choice.key === slot && Boolean(choice.target));
+}
+
+/**
+ * The choice traversal should follow at a decision: an explicit remembered
+ * choice if present, otherwise the implicit collapse of a single-option
+ * decision. Decisions with two or more live options return undefined so they
+ * stop traversal and get presented to the user.
+ */
+function getEffectiveDecisionChoice(
+  state: AppState,
+  nodeId: string,
+  node: DecisionNodeEntry
+): DecisionChoice | undefined {
+  return getRememberedDecisionChoice(state, nodeId, node) ?? getAutoResolvedDecisionChoice(state, nodeId, node);
+}
+
+/** The decision options that remain live (non-disabled) for presentation. */
+function getAvailableDecisionChoices(
+  state: AppState,
+  nodeId: string,
+  node: DecisionNodeEntry
+): DecisionChoice[] {
+  if (!state.activeGraph) {
+    return getDecisionChoices(node);
+  }
+  const availableSlots = new Set(
+    getAvailableOptions(state.activeGraph, nodeId, getForcedChoices(state)).map((option) => option.slot)
+  );
+  const filtered = getDecisionChoices(node).filter((choice) => availableSlots.has(choice.key));
+  return filtered.length > 0 ? filtered : getDecisionChoices(node);
+}
+
 function getFarthestResolvedBranchLabel(state: AppState): string {
   if (!state.activeGraph) {
     return formatRaceLabel(state.selectedPlayerRace);
@@ -330,12 +401,12 @@ function getFarthestResolvedBranchLabel(state: AppState): string {
     }
 
     if (node.type === "decision") {
-      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
-      if (!rememberedChoice?.target) {
+      const resolvedChoice = getEffectiveDecisionChoice(state, nodeId, node);
+      if (!resolvedChoice?.target) {
         break;
       }
-      lastResolvedLabel = rememberedChoice.label;
-      nodeId = rememberedChoice.target;
+      lastResolvedLabel = resolvedChoice.label;
+      nodeId = resolvedChoice.target;
       continue;
     }
 
@@ -362,11 +433,11 @@ function getResolvedBuildTimeline(state: AppState): ResolvedBuildStepRef[] {
     }
 
     if (node.type === "decision") {
-      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
-      if (!rememberedChoice?.target) {
+      const resolvedChoice = getEffectiveDecisionChoice(state, nodeId, node);
+      if (!resolvedChoice?.target) {
         break;
       }
-      nodeId = rememberedChoice.target;
+      nodeId = resolvedChoice.target;
       continue;
     }
 
@@ -394,15 +465,15 @@ function getTraversalDecisionChoice(
   if (!useRememberedChoices) {
     return { source: "none" };
   }
-  const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
-  if (rememberedChoice) {
-    debugNavigation("getTraversalDecisionChoice using remembered decision choice", {
+  const resolvedChoice = getEffectiveDecisionChoice(state, nodeId, node);
+  if (resolvedChoice) {
+    debugNavigation("getTraversalDecisionChoice using resolved decision choice", {
       nodeId,
-      rememberedKey: rememberedChoice.key,
-      rememberedLabel: rememberedChoice.label,
-      rememberedTarget: rememberedChoice.target
+      resolvedKey: resolvedChoice.key,
+      resolvedLabel: resolvedChoice.label,
+      resolvedTarget: resolvedChoice.target
     });
-    return { choice: rememberedChoice, source: "remembered" };
+    return { choice: resolvedChoice, source: "remembered" };
   }
   return { source: "none" };
 }
@@ -426,11 +497,11 @@ function findNextUnresolvedDecisionNode(
     }
 
     if (node.type === "decision") {
-      const rememberedChoice = getRememberedDecisionChoice(state, nodeId, node);
-      if (!rememberedChoice?.target) {
+      const resolvedChoice = getEffectiveDecisionChoice(state, nodeId, node);
+      if (!resolvedChoice?.target) {
         return { nodeId, node };
       }
-      nodeId = rememberedChoice.target;
+      nodeId = resolvedChoice.target;
       skipCurrentBuildNode = false;
       continue;
     }
@@ -464,21 +535,23 @@ function resolveUpcomingDecisionChoice(
     return false;
   }
 
-  const picked = getDecisionChoices(upcomingDecision.node).find(
-    (choice) => choice.key === branch && Boolean(choice.target)
-  );
+  const availableChoices = getAvailableDecisionChoices(state, upcomingDecision.nodeId, upcomingDecision.node);
+  const position = branch === "left" ? 0 : branch === "middle" ? 1 : 2;
+  const picked = availableChoices[position];
   if (!picked?.target) {
-    debugNavigation("resolveUpcomingDecisionChoice ignored; branch invalid for upcoming decision", {
+    debugNavigation("resolveUpcomingDecisionChoice ignored; no available option at position", {
       inputSeq,
       source,
       requestedBranch: branch,
+      position,
       decisionNodeId: upcomingDecision.nodeId,
+      availableChoices: availableChoices.map((choice) => choice.key),
       choices: describeDecisionChoices(upcomingDecision.node)
     });
     return false;
   }
 
-  state.rememberedDecisionChoices[upcomingDecision.nodeId] = branch;
+  state.rememberedDecisionChoices[upcomingDecision.nodeId] = picked.key;
   state.decisionInputBlockedUntilMs = Date.now() + DECISION_INPUT_BUFFER_MS;
   debugNavigation("resolveUpcomingDecisionChoice applied immediately", {
     inputSeq,
@@ -495,37 +568,55 @@ function resolveUpcomingDecisionChoice(
   return true;
 }
 
-function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
+function getDedupedRaceOptions(state: AppState): PlayerRaceOption[] {
   const seen = new Set<PlayerRace>();
-  const options = state.data.raceOptions.filter((option) => {
+  return state.data.raceOptions.filter((option) => {
     if (seen.has(option.playerRace)) {
       return false;
     }
     seen.add(option.playerRace);
     return true;
   });
-  return options.slice(0, 3).map((option, index) => {
+}
+
+/**
+ * Races that still have an active (non-disabled) build. Falls back to the full
+ * list if everything is disabled so the overlay is never left without a way to
+ * start.
+ */
+function getAvailableRaceOptions(state: AppState): PlayerRaceOption[] {
+  const deduped = getDedupedRaceOptions(state);
+  const available = getAvailableRaces(deduped);
+  return available.length > 0 ? available : deduped;
+}
+
+function getPlayerRaceChoices(state: AppState): DecisionChoice[] {
+  const options = getAvailableRaceOptions(state).slice(0, 3);
+  state.presentedRaceOptions = options;
+  return options.map((option, index) => {
     const slot = index === 0 ? "left" : index === 1 ? "middle" : "right";
+    // When only one race remains there is no real decision; present it as a
+    // Start button so the experience matches practice mode.
+    const label =
+      options.length === 1 ? "Start" : option.playerRace[0].toUpperCase() + option.playerRace.slice(1);
     return {
       key: slot,
-      label: option.playerRace[0].toUpperCase() + option.playerRace.slice(1)
+      label
     } as DecisionChoice;
   });
 }
 
-function getChoiceHotkey(state: AppState, key: DecisionChoice["key"]): string {
-  const keyMap: Record<DecisionChoice["key"], keyof typeof state.data.config.hotkeys.focused> = {
-    left: "choose1",
-    middle: "choose2",
-    right: "choose3"
-  };
-  const configured = state.data.config.hotkeys.focused[keyMap[key]];
-  const fallback: Record<DecisionChoice["key"], string> = {
-    left: "Choose 1",
-    middle: "Choose 2",
-    right: "Choose 3"
-  };
-  return formatHotkey(configured || fallback[key]);
+const CHOOSE_HOTKEY_KEYS = ["choose1", "choose2", "choose3"] as const;
+
+/**
+ * Hotkey label for the Nth presented row. Selection rows always bind F1/F2/F3
+ * in display order regardless of which underlying branch slots survived, so a
+ * decision with its first option disabled still starts at F1.
+ */
+function getChoiceHotkeyByIndex(state: AppState, index: number): string {
+  const configKey = CHOOSE_HOTKEY_KEYS[index] ?? CHOOSE_HOTKEY_KEYS[0];
+  const configured = state.data.config.hotkeys.focused[configKey];
+  return formatHotkey(configured || `Choose ${index + 1}`);
 }
 
 function getBranchForChooseAction(action: ControlAction): DecisionChoice["key"] | undefined {
@@ -561,7 +652,7 @@ function getSelectionContextKey(state: AppState): string | undefined {
 }
 
 function selectPlayerRace(state: AppState, branch: "left" | "middle" | "right"): void {
-  const options = state.data.raceOptions.slice(0, 3);
+  const options = (state.presentedRaceOptions ?? getAvailableRaceOptions(state)).slice(0, 3);
   const indexByBranch: Record<"left" | "middle" | "right", number> = {
     left: 0,
     middle: 1,
@@ -627,7 +718,6 @@ function startPracticeSession(state: AppState): void {
   state.timerSeconds = -COUNTDOWN_DURATION_SECONDS;
   state.timerPaused = false;
   state.timerStarted = true;
-  state.decisionsLocked = true;
   state.rememberedDecisionChoices = { ...config.rememberedChoices };
   state.currentBranchLabel = config.branchLabel;
   clearPendingDecisionQueue(state);
@@ -704,7 +794,8 @@ function resetStateToStart(state: AppState, options: { preservePractice?: boolea
   state.jumpHistory = [];
   state.pendingPractice = undefined;
   state.practiceSession = undefined;
-  state.decisionsLocked = false;
+  state.presentedChoiceSlots = undefined;
+  state.presentedRaceOptions = undefined;
   clearBranchAutoSelect(state);
 
   if (practiceConfig) {
@@ -959,18 +1050,18 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
       stepIndex = 0;
       continue;
     }
-    const choices = getDecisionChoices(node);
-    for (const choice of choices) {
+    const choices = getAvailableDecisionChoices(state, nodeId, node);
+    choices.forEach((choice, choiceIndex) => {
       if (items.length >= count) {
-        break;
+        return;
       }
       items.push({
         kind: "selection",
-        isCurrent: nodeId === activeNodeId && choice.key === "left",
-        hotkey: getChoiceHotkey(state, choice.key),
+        isCurrent: nodeId === activeNodeId && choiceIndex === 0,
+        hotkey: getChoiceHotkeyByIndex(state, choiceIndex),
         label: choice.label
       });
-    }
+    });
     break;
   }
 
@@ -1040,7 +1131,7 @@ function renderSelectionRows(state: AppState, choices: DecisionChoice[]): string
       kind: "selection",
       isCurrent: index === 0,
       elapsedProgress,
-      hotkey: getChoiceHotkey(state, choice.key),
+      hotkey: getChoiceHotkeyByIndex(state, index),
       label: choice.label
     };
   });
@@ -1078,7 +1169,10 @@ function maybeArmDecisionTimeout(state: AppState): void {
 
     const node = getCurrentNode(state);
     if (node?.type === "decision") {
-      chooseDecisionBranch(state, "left");
+      // Default to the first presented (live) option, which may not be the
+      // left slot once disabled branches are filtered out.
+      const defaultSlot = state.presentedChoiceSlots?.[0] ?? "left";
+      chooseDecisionBranch(state, defaultSlot);
     }
   }, state.timeoutDurationMs);
 }
@@ -1119,29 +1213,20 @@ function render(state: AppState): void {
   }
 
   const node = getCurrentNode(state);
-  if (node?.type === "decision") {
-    if (state.decisionsLocked) {
-      alignProgressToGameTime(state);
-      const refreshedNode = getCurrentNode(state);
-      if (refreshedNode?.type === "decision") {
-        requestOverlayResize();
-        return;
-      }
-      setActionQueueHtml(
-        actionQueue,
-        renderQueueBlocks(collectQueueItems(state, visibleQueueCount), visibleQueueCount)
-      );
-      clearBranchAutoSelect(state);
-      requestOverlayResize();
-      return;
-    }
-
-    setActionQueueHtml(actionQueue, renderSelectionRows(state, getDecisionChoices(node)));
+  if (node?.type === "decision" && state.currentNodeId) {
+    // Reaching a decision node here means it is genuinely presented: collapsed
+    // (all-but-one disabled) and remembered/forced decisions are auto-resolved
+    // during traversal, so they never stop here. This unifies practice mode
+    // (all decisions forced) and disabled-branch live mode.
+    const choices = getAvailableDecisionChoices(state, state.currentNodeId, node);
+    state.presentedChoiceSlots = choices.map((choice) => choice.key);
+    setActionQueueHtml(actionQueue, renderSelectionRows(state, choices));
     maybeArmDecisionTimeout(state);
     requestOverlayResize();
     return;
   }
 
+  state.presentedChoiceSlots = undefined;
   setActionQueueHtml(actionQueue, renderQueueBlocks(collectQueueItems(state, visibleQueueCount), visibleQueueCount));
   clearBranchAutoSelect(state);
   requestOverlayResize();
@@ -1486,15 +1571,6 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
   }
 
   if (chooseBranch) {
-    if (state.decisionsLocked) {
-      debugNavigation("choose action ignored; decisions locked in practice mode", {
-        inputSeq,
-        source,
-        requestedBranch: chooseBranch,
-        ...getNavigationSnapshot(state)
-      });
-      return;
-    }
     if (typeof state.decisionInputBlockedUntilMs === "number" && now < state.decisionInputBlockedUntilMs) {
       debugNavigation("choose action ignored due to decision input buffer", {
         inputSeq,
@@ -1507,14 +1583,31 @@ function handleAction(state: AppState, action: ControlAction, source = "unknown"
       return;
     }
     if (node?.type === "decision") {
+      // F1/F2/F3 select the Nth presented (live) option; translate that back to
+      // the underlying branch slot, which may differ once disabled options are
+      // filtered out.
+      const position = chooseBranch === "left" ? 0 : chooseBranch === "middle" ? 1 : 2;
+      const targetSlot = state.presentedChoiceSlots?.[position];
+      if (!targetSlot) {
+        debugNavigation("handleAction ignored; no presented option at position", {
+          inputSeq,
+          source,
+          requestedBranch: chooseBranch,
+          position,
+          presentedChoiceSlots: state.presentedChoiceSlots ?? null
+        });
+        return;
+      }
       debugNavigation("handleAction applying choose on current decision node", {
         inputSeq,
         source,
         nodeId: state.currentNodeId,
         requestedBranch: chooseBranch,
+        position,
+        targetSlot,
         choices: describeDecisionChoices(node)
       });
-      chooseDecisionBranch(state, chooseBranch);
+      chooseDecisionBranch(state, targetSlot);
       return;
     }
     resolveUpcomingDecisionChoice(state, chooseBranch, source, inputSeq);
@@ -1618,8 +1711,7 @@ async function main(): Promise<void> {
     rememberedDecisionChoices: {},
     jumpHistory: [],
     debugInputSequence: 0,
-    lastActionAtMsBySource: {},
-    decisionsLocked: false
+    lastActionAtMsBySource: {}
   };
 
   render(state);
@@ -1631,6 +1723,20 @@ async function main(): Promise<void> {
   });
   window.overlayApi.onPracticeSession((config) => {
     enterPracticeMode(state, config);
+  });
+  window.overlayApi.onDataUpdated((updated) => {
+    // Branch enable/disable (or an import) changed the build data. Adopt the
+    // fresh graphs so decision collapsing reflects the new disabled flags. Only
+    // re-render when idle at the start screen to avoid disrupting a live run;
+    // the next reset will rebuild from the updated data regardless.
+    debugNavigation("overlay received data-updated", {
+      raceOptionCount: updated.raceOptions.length,
+      timerStarted: state.timerStarted
+    });
+    state.data = updated;
+    if (!state.timerStarted) {
+      render(state);
+    }
   });
 }
 

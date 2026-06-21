@@ -7,6 +7,8 @@ import type {
 } from "../core/import/types";
 import { collectBuildOrders, type BuildOrderPath } from "../core/graph-traversal";
 import { practiceConfigFromPath } from "../core/practice-session";
+import { hasActiveLeaf } from "../core/decision-resolution";
+import type { SetBranchDisabledRequest, SetBranchDisabledResponse } from "../core/branch-state/types";
 import {
   buildStepGraph,
   collectAncestors,
@@ -21,6 +23,10 @@ const layoutEl = document.querySelector<HTMLElement>(".layout");
 const sidebarResizerEl = document.getElementById("sidebar-resizer");
 const pathSelectorEl = document.querySelector<HTMLElement>("#path-selector");
 const buildOrderEl = document.querySelector<HTMLElement>("#build-order");
+const branchControlEl = document.querySelector<HTMLElement>("#branch-control");
+const branchControlNameEl = document.querySelector<HTMLElement>("#branch-control-name");
+const branchControlStatusEl = document.querySelector<HTMLElement>("#branch-control-status");
+const branchToggleBtn = document.querySelector<HTMLButtonElement>("#branch-toggle-btn");
 const fitBtn = document.querySelector<HTMLButtonElement>("#fit-btn");
 const resetBtn = document.querySelector<HTMLButtonElement>("#reset-btn");
 const backToOverlayBtn = document.querySelector<HTMLButtonElement>("#back-to-overlay-btn");
@@ -32,6 +38,7 @@ let activeRace: PlayerRaceOption | null = null;
 let activePaths: BuildOrderPath[] = [];
 let activeStepGraph: StepGraphView | null = null;
 let selectedPathIndex: number | null = null;
+let selectedBuildNodeId: string | null = null;
 let cy: Core | null = null;
 let isMiddlePanning = false;
 let isSidebarResizing = false;
@@ -344,6 +351,24 @@ function createCyStyles() {
       style: {
         opacity: 0.18
       }
+    },
+    {
+      selector: "node.disabled-branch",
+      style: {
+        "background-color": "#475569",
+        "border-color": "#64748b",
+        color: "#94a3b8",
+        opacity: 0.35
+      }
+    },
+    {
+      selector: "edge.disabled-branch",
+      style: {
+        "line-color": "#475569",
+        "target-arrow-color": "#475569",
+        color: "#64748b",
+        opacity: 0.35
+      }
     }
   ] as cytoscape.StylesheetStyle[];
 }
@@ -435,6 +460,89 @@ function getPathLabel(path: BuildOrderPath): string {
   }
   const leafId = path.nodePath[path.nodePath.length - 1];
   return leafId ?? "Build order";
+}
+
+function isBranchDisabled(graph: ResolvedBuildGraph, buildNodeId: string): boolean {
+  const node = graph.nodes[buildNodeId];
+  return node?.type === "build" && node.disabled === true;
+}
+
+/** A path is disabled when any branch along it carries the disabled flag. */
+function isPathDisabled(graph: ResolvedBuildGraph, path: BuildOrderPath): boolean {
+  return path.nodePath.some((nodeId) => isBranchDisabled(graph, nodeId));
+}
+
+/**
+ * Build nodes still on a live path: reachable from the root without passing
+ * through a disabled branch. Disabling a non-leaf branch therefore prunes its
+ * whole subtree from this set, so every descendant greys out recursively.
+ */
+function collectActiveReachableBuildNodes(graph: ResolvedBuildGraph): Set<string> {
+  const reachable = new Set<string>();
+  const visited = new Set<string>();
+
+  const visit = (nodeId: string): void => {
+    if (visited.has(nodeId)) {
+      return;
+    }
+    visited.add(nodeId);
+
+    const node = graph.nodes[nodeId];
+    if (!node) {
+      return;
+    }
+
+    if (node.type === "build") {
+      if (node.disabled) {
+        return;
+      }
+      reachable.add(nodeId);
+      if (node.next) {
+        visit(node.next);
+      }
+      return;
+    }
+
+    visit(node.left.target);
+    visit(node.middle.target);
+    if (node.right) {
+      visit(node.right.target);
+    }
+  };
+
+  visit(graph.rootNodeId);
+  return reachable;
+}
+
+/**
+ * Grey out every step that is no longer part of a live build path: either its
+ * branch (or an ancestor) is disabled so it is unreachable, or its whole
+ * subtree is disabled so it reaches no active leaf. Edges into those dead steps
+ * are greyed too so disabled options read as severed at the decision point.
+ */
+function applyDisabledStyling(): void {
+  if (!cy || !activeRace || !activeStepGraph) {
+    return;
+  }
+
+  const graph = activeRace.graph;
+  const cache = new Map<string, boolean>();
+  const reachable = collectActiveReachableBuildNodes(graph);
+  const disabledStepIds = new Set<string>();
+
+  for (const [stepId, meta] of activeStepGraph.stepMeta) {
+    const dead = !reachable.has(meta.buildNodeId) || !hasActiveLeaf(graph, meta.buildNodeId, undefined, cache);
+    if (dead) {
+      disabledStepIds.add(stepId);
+      cy.$id(stepId).addClass("disabled-branch");
+    }
+  }
+
+  cy.edges().forEach((edge) => {
+    if (disabledStepIds.has(edge.target().id())) {
+      edge.addClass("disabled-branch");
+    }
+  });
 }
 
 function getStepIdsForPath(path: BuildOrderPath, graph: ResolvedBuildGraph): string[] {
@@ -622,13 +730,18 @@ function renderPathSelector(paths: BuildOrderPath[]): void {
     return;
   }
 
+  const graph = activeRace?.graph;
+
   paths.forEach((path, index) => {
+    const disabled = graph ? isPathDisabled(graph, path) : false;
+
     const option = document.createElement("label");
-    option.className = "path-option";
+    option.className = `path-option${disabled ? " path-option-disabled" : ""}`;
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = selectedPathIndex === index;
+    checkbox.disabled = disabled;
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
         selectPath(index);
@@ -641,7 +754,7 @@ function renderPathSelector(paths: BuildOrderPath[]): void {
 
     const text = document.createElement("span");
     text.className = "path-option-text";
-    text.textContent = getPathLabel(path);
+    text.textContent = disabled ? `${getPathLabel(path)} (disabled)` : getPathLabel(path);
 
     option.append(checkbox, text);
     pathSelectorEl.appendChild(option);
@@ -674,6 +787,105 @@ function highlightSubgraph(stepId: string): void {
   });
 }
 
+function renderBranchControl(buildNodeId: string | null): void {
+  selectedBuildNodeId = buildNodeId;
+
+  if (!branchControlEl || !branchControlNameEl || !branchToggleBtn) {
+    return;
+  }
+
+  const node = buildNodeId && activeRace ? activeRace.graph.nodes[buildNodeId] : undefined;
+  if (!buildNodeId || !node || node.type !== "build") {
+    branchControlEl.hidden = true;
+    if (branchControlStatusEl) {
+      branchControlStatusEl.textContent = "";
+      branchControlStatusEl.className = "branch-control-status";
+    }
+    return;
+  }
+
+  const disabled = node.disabled === true;
+  branchControlEl.hidden = false;
+  branchControlNameEl.textContent = node.title || buildNodeId;
+  branchToggleBtn.textContent = disabled ? "Enable branch" : "Disable branch";
+  branchToggleBtn.classList.toggle("is-enable", disabled);
+  branchToggleBtn.disabled = false;
+  if (branchControlStatusEl) {
+    branchControlStatusEl.textContent = disabled
+      ? "Disabled — hidden from the overlay and unavailable as a decision."
+      : "";
+    branchControlStatusEl.className = "branch-control-status";
+  }
+}
+
+function reselectBuildNode(buildNodeId: string): void {
+  if (activeStepGraph) {
+    for (const [stepId, meta] of activeStepGraph.stepMeta) {
+      if (meta.buildNodeId === buildNodeId) {
+        selectStepNode(stepId);
+        return;
+      }
+    }
+  }
+  renderBranchControl(buildNodeId);
+}
+
+async function setBranchDisabledClient(req: SetBranchDisabledRequest): Promise<SetBranchDisabledResponse> {
+  if (window.overlayApi?.setBranchDisabled) {
+    return window.overlayApi.setBranchDisabled(req);
+  }
+  const response = await fetch("/api/set-branch-disabled", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req)
+  });
+  return (await response.json()) as SetBranchDisabledResponse;
+}
+
+async function toggleSelectedBranch(): Promise<void> {
+  if (!activeRace || !selectedBuildNodeId || !branchToggleBtn) {
+    return;
+  }
+  const buildNodeId = selectedBuildNodeId;
+  const node = activeRace.graph.nodes[buildNodeId];
+  if (!node || node.type !== "build") {
+    return;
+  }
+
+  const nextDisabled = node.disabled !== true;
+  branchToggleBtn.disabled = true;
+  if (branchControlStatusEl) {
+    branchControlStatusEl.textContent = nextDisabled ? "Disabling…" : "Enabling…";
+    branchControlStatusEl.className = "branch-control-status";
+  }
+
+  try {
+    const result = await setBranchDisabledClient({
+      buildId: activeRace.buildId,
+      branchId: buildNodeId,
+      disabled: nextDisabled
+    });
+
+    if (!result.ok) {
+      if (branchControlStatusEl) {
+        branchControlStatusEl.textContent = result.error ?? "Failed to update branch.";
+        branchControlStatusEl.className = "branch-control-status error";
+      }
+      branchToggleBtn.disabled = false;
+      return;
+    }
+
+    await refreshData();
+    reselectBuildNode(buildNodeId);
+  } catch (error) {
+    if (branchControlStatusEl) {
+      branchControlStatusEl.textContent = error instanceof Error ? error.message : String(error);
+      branchControlStatusEl.className = "branch-control-status error";
+    }
+    branchToggleBtn.disabled = false;
+  }
+}
+
 function selectStepNode(stepId: string): void {
   const meta = activeStepGraph?.stepMeta.get(stepId);
   if (!meta) {
@@ -681,6 +893,7 @@ function selectStepNode(stepId: string): void {
   }
 
   syncSidebarFromStep(stepId, meta.buildNodeId, meta.stepIndex);
+  renderBranchControl(meta.buildNodeId);
 
   cy?.animate({
     center: { eles: cy.$id(stepId) },
@@ -733,6 +946,8 @@ function mountGraph(option: PlayerRaceOption): void {
   });
 
   renderPathSelector(activePaths);
+  renderBranchControl(null);
+  applyDisabledStyling();
   if (buildOrderEl) {
     buildOrderEl.className = "build-order muted";
     buildOrderEl.textContent = "Select a build path to view its steps.";
@@ -835,6 +1050,7 @@ function clearPreviewGraphState(): void {
 
 function resetSelection(): void {
   clearPathSelection();
+  renderBranchControl(null);
 }
 
 function renderRaceTabs(options: PlayerRaceOption[]): void {
@@ -907,6 +1123,8 @@ fitBtn?.addEventListener("click", () => {
 resetBtn?.addEventListener("click", () => {
   resetSelection();
 });
+
+branchToggleBtn?.addEventListener("click", () => void toggleSelectedBranch());
 
 practiceBtn?.addEventListener("click", () => {
   if (!activeRace || selectedPathIndex === null || !window.overlayApi) {

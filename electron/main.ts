@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { loadInitialData } from "../src/core/loader";
 import { runImport } from "../src/core/import/service";
+import { setBranchDisabled } from "../src/core/branch-state/service";
 import type { ImportPreviewRequest } from "../src/core/import/types";
+import type { SetBranchDisabledRequest } from "../src/core/branch-state/types";
 import type { AppConfig, ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -583,9 +585,16 @@ function applyDynamicConfig(config: AppConfig): void {
   refreshOverlayReassertLoop();
 }
 
+function broadcastDataUpdated(): void {
+  if (mainWindow && !mainWindow.isDestroyed() && initialData) {
+    mainWindow.webContents.send("data-updated", initialData);
+  }
+}
+
 function reloadAppData(): InitialAppData {
   initialData = loadInitialData();
   applyDynamicConfig(initialData.config);
+  broadcastDataUpdated();
   return initialData;
 }
 
@@ -647,6 +656,14 @@ function setupIpc(): void {
     const buildsPath = resolveBuildsDirectoryPath();
     const result = runImport(buildsPath, request);
     if (result.applied) {
+      await reloadAppData();
+    }
+    return result;
+  });
+  ipcMain.handle("app:set-branch-disabled", async (_event, request: SetBranchDisabledRequest) => {
+    const buildsPath = resolveBuildsDirectoryPath();
+    const result = setBranchDisabled(buildsPath, request);
+    if (result.ok) {
       await reloadAppData();
     }
     return result;

@@ -42,6 +42,17 @@
 
         <aside class="sidebar">
           <div id="browse-panel" class="sidebar-panel">
+            <section id="branch-control" class="sidebar-section branch-control-section" hidden>
+              <h2>Selected branch</h2>
+              <div class="branch-control-body">
+                <div id="branch-control-name" class="branch-control-name"></div>
+                <button type="button" id="branch-toggle-btn" class="toolbar-btn branch-toggle-btn">
+                  Disable branch
+                </button>
+                <span id="branch-control-status" class="branch-control-status"></span>
+              </div>
+            </section>
+
             <section class="sidebar-section path-selector-section">
               <h2>Build paths</h2>
               <div id="path-selector" class="path-selector"></div>

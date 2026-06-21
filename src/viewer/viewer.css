@@ -235,6 +235,52 @@ body {
   min-width: 0;
 }
 
+.path-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.path-option-disabled .path-option-text {
+  text-decoration: line-through;
+}
+
+.branch-control-section {
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 12px;
+}
+
+.branch-control-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branch-control-name {
+  font-weight: 600;
+  font-size: clamp(0.82rem, 1.1vw, 0.92rem);
+  word-break: break-word;
+}
+
+.branch-toggle-btn {
+  align-self: flex-start;
+}
+
+.branch-toggle-btn.is-enable {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.18);
+  color: #d1fae5;
+}
+
+.branch-control-status {
+  font-size: 0.78rem;
+  color: var(--muted);
+  min-height: 1em;
+}
+
+.branch-control-status.error {
+  color: #fecaca;
+}
+
 .muted {
   color: var(--muted);
   font-size: clamp(0.78rem, 1.1vw, 0.875rem);
