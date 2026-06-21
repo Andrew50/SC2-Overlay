@@ -95,6 +95,7 @@ interface SelectionQueueItem {
   elapsedProgress?: number;
   hotkey: string;
   label: string;
+  decisionNodeId?: string;
 }
 
 type QueueItem = BuildQueueItem | SelectionQueueItem;
@@ -536,6 +537,27 @@ function resolveUpcomingDecisionChoice(
   }
 
   const availableChoices = getAvailableDecisionChoices(state, upcomingDecision.nodeId, upcomingDecision.node);
+  if (
+    availableChoices.length > 1 &&
+    !isUpcomingDecisionFullyVisible(state, upcomingDecision.nodeId, availableChoices.length)
+  ) {
+    const visibleQueueItems = collectQueueItems(state, getVisibleQueueCount(state));
+    debugNavigation("resolveUpcomingDecisionChoice ignored; upcoming decision not fully visible", {
+      inputSeq,
+      source,
+      requestedBranch: branch,
+      decisionNodeId: upcomingDecision.nodeId,
+      requiredChoiceCount: availableChoices.length,
+      visibleQueueCount: getVisibleQueueCount(state),
+      visibleChoices: visibleQueueItems
+        .filter(
+          (item): item is SelectionQueueItem =>
+            item.kind === "selection" && item.decisionNodeId === upcomingDecision.nodeId
+        )
+        .map((item) => item.label)
+    });
+    return false;
+  }
   const position = branch === "left" ? 0 : branch === "middle" ? 1 : 2;
   const picked = availableChoices[position];
   if (!picked?.target) {
@@ -1059,7 +1081,8 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
         kind: "selection",
         isCurrent: nodeId === activeNodeId && choiceIndex === 0,
         hotkey: getChoiceHotkeyByIndex(state, choiceIndex),
-        label: choice.label
+        label: choice.label,
+        decisionNodeId: nodeId
       });
     });
     break;
@@ -1072,6 +1095,21 @@ function collectQueueItems(state: AppState, count: number): QueueItem[] {
     return combined.slice(start, start + count);
   }
   return combined.slice(0, count);
+}
+
+function isUpcomingDecisionFullyVisible(
+  state: AppState,
+  decisionNodeId: string,
+  visibleChoiceCount: number
+): boolean {
+  if (visibleChoiceCount <= 0) {
+    return false;
+  }
+  const visibleQueueItems = collectQueueItems(state, getVisibleQueueCount(state));
+  const renderedChoiceCount = visibleQueueItems.filter(
+    (item): item is SelectionQueueItem => item.kind === "selection" && item.decisionNodeId === decisionNodeId
+  ).length;
+  return renderedChoiceCount >= visibleChoiceCount;
 }
 
 function renderQueueBlocks(queueItems: QueueItem[], visibleCount: number): string {

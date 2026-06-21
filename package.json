@@ -1,6 +1,6 @@
 {
   "name": "sc2-overlay",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "private": true,
   "description": "SC2 build overlay prototype using Electron + TypeScript + HTML/CSS",
   "author": {

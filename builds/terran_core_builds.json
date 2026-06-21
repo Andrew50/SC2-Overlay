@@ -308,7 +308,8 @@
         "supply": 36,
         "action": "Supply Depot"
       }
-    ]
+    ],
+    "disabled": true
   },
   "gas_first_refinery_core": {
     "steps": [
@@ -1172,12 +1173,17 @@
       {
         "time": "3:36",
         "supply": 39,
+        "action": "Starport onto Factory Tech Lab [first swap; for Raven]"
+      },
+      {
+        "time": "3:36",
+        "supply": 39,
         "action": "Raven"
       },
       {
         "time": "3:39",
         "supply": 39,
-        "action": "Factory Tech Lab [second; rebuild after Starport swap]"
+        "action": "Factory Tech Lab [second; rebuild after Starport takes first Tech Lab]"
       },
       {
         "time": "3:40",
@@ -1208,6 +1214,11 @@
         "time": "4:14",
         "supply": 49,
         "action": "Barracks"
+      },
+      {
+        "time": "4:16",
+        "supply": 52,
+        "action": "Barracks onto Factory Tech Lab [second swap; for Stimpack]"
       },
       {
         "time": "4:17",
@@ -1247,12 +1258,17 @@
       {
         "time": "5:12",
         "supply": 69,
-        "action": "Starport Reactor"
+        "action": "Starport Reactor [after Barracks takes Tech Lab]"
       },
       {
         "time": "5:17",
         "supply": 70,
-        "action": "Factory Reactor"
+        "action": "Factory Reactor [after Barracks takes rebuilt Tech Lab]"
+      },
+      {
+        "time": "5:21",
+        "supply": 75,
+        "action": "Barracks onto Starport Tech Lab [third swap; for Combat Shield]"
       },
       {
         "time": "5:22",
@@ -1747,7 +1763,8 @@
         "supply": 70,
         "action": "Raven"
       }
-    ]
+    ],
+    "disabled": true
   },
   "tvt_safe_factory_expand_3cc_raven_tank_after_core": {
     "steps": [
