@@ -13,6 +13,7 @@ export interface HotkeyMap {
   jumpNext: string;
   pause?: string;
   toggleVisibility?: string;
+  openViewer?: string;
 }
 
 export interface AppConfig {

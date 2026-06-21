@@ -12,7 +12,6 @@ declare global {
       hideOverlay: () => Promise<void>;
       isOverlayVisible: () => Promise<boolean>;
       openViewer: () => Promise<void>;
-      setClickThrough: (enabled: boolean) => Promise<void>;
       startPractice: (config: PracticeSessionConfig) => Promise<void>;
       debugLog: (message: string, details?: unknown) => void;
       onControlAction: (callback: (action: ControlAction) => void) => () => void;

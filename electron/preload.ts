@@ -13,8 +13,6 @@ const api = {
   hideOverlay: (): Promise<void> => ipcRenderer.invoke("app:hide-overlay"),
   isOverlayVisible: (): Promise<boolean> => ipcRenderer.invoke("app:is-overlay-visible"),
   openViewer: (): Promise<void> => ipcRenderer.invoke("app:open-viewer"),
-  setClickThrough: (enabled: boolean): Promise<void> =>
-    ipcRenderer.invoke("app:set-click-through", enabled),
   startPractice: (config: PracticeSessionConfig): Promise<void> =>
     ipcRenderer.invoke("app:start-practice", config),
   debugLog: (message: string, details?: unknown): void => {

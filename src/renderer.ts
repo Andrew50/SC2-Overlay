@@ -96,7 +96,6 @@ interface ResolvedBuildStepRef {
 const els = {
   timerValue: document.querySelector<HTMLElement>("#timer-value"),
   branchValue: document.querySelector<HTMLElement>("#branch-value"),
-  openViewerBtn: document.querySelector<HTMLButtonElement>("#open-viewer-btn"),
   actionQueue: document.querySelector<HTMLElement>("#action-queue"),
   upcomingDecisions: document.querySelector<HTMLElement>("#upcoming-decisions"),
   decisionContent: document.querySelector<HTMLElement>("#decision-content"),
@@ -1501,6 +1500,15 @@ function setupFocusedFallback(state: AppState): void {
       void window.overlayApi.toggleOverlayVisibility();
       return;
     }
+    const openViewerHotkey = focusedHotkeys.openViewer?.toLowerCase();
+    if (
+      openViewerHotkey &&
+      (pressedKey === openViewerHotkey || pressedValue === openViewerHotkey)
+    ) {
+      event.preventDefault();
+      void window.overlayApi.openViewer();
+      return;
+    }
     const actionByKey = new Map<string, ControlAction>([
       [focusedHotkeys.choose1.toLowerCase(), "choose1"],
       [focusedHotkeys.choose2.toLowerCase(), "choose2"],
@@ -1553,27 +1561,6 @@ function applyTimerConfig(config: AppConfig["timer"]): void {
   }
 }
 
-function setupViewerIcon(config: AppConfig): void {
-  const button = els.openViewerBtn;
-  if (!button) {
-    return;
-  }
-
-  if (config.window.clickThrough) {
-    document.addEventListener("mousemove", (event) => {
-      const target = document.elementFromPoint(event.clientX, event.clientY);
-      const overButton =
-        target instanceof Element && Boolean(target.closest("#open-viewer-btn"));
-      void window.overlayApi.setClickThrough(!overButton);
-    });
-  }
-
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    void window.overlayApi.openViewer();
-  });
-}
-
 async function main(): Promise<void> {
   const data = await window.overlayApi.getInitialData();
   applyUiScale(data.config.ui.fontScale, data.config.ui.scale);
@@ -1600,7 +1587,6 @@ async function main(): Promise<void> {
   };
 
   render(state);
-  setupViewerIcon(data.config);
   setupFocusedFallback(state);
   startTickLoop(state);
   window.overlayApi.onControlAction((action) => {

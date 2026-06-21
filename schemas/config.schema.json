@@ -103,7 +103,8 @@
         "jumpPrevious": { "type": "string", "minLength": 1 },
         "jumpNext": { "type": "string", "minLength": 1 },
         "pause": { "type": "string", "minLength": 0 },
-        "toggleVisibility": { "type": "string", "minLength": 0 }
+        "toggleVisibility": { "type": "string", "minLength": 0 },
+        "openViewer": { "type": "string", "minLength": 0 }
       }
     }
   }

@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { loadInitialData } from "../src/core/loader";
+import { runImport } from "../src/core/import/service";
+import type { ImportPreviewRequest } from "../src/core/import/types";
 import type { AppConfig, ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -375,6 +377,7 @@ function registerGlobalHotkeys(config: AppConfig): void {
     pause: config.hotkeys.global.pause ?? ""
   };
   const toggleVisibilityAccelerator = config.hotkeys.global.toggleVisibility ?? "";
+  const openViewerAccelerator = config.hotkeys.global.openViewer ?? "";
   console.log(
     `Global hotkey config: ${inspect(
       {
@@ -387,7 +390,8 @@ function registerGlobalHotkeys(config: AppConfig): void {
         jumpPrevious: hotkeyMap.jumpPrevious,
         jumpNext: hotkeyMap.jumpNext,
         pause: hotkeyMap.pause,
-        toggleVisibility: toggleVisibilityAccelerator
+        toggleVisibility: toggleVisibilityAccelerator,
+        openViewer: openViewerAccelerator
       },
       { compact: true }
     )}`
@@ -395,7 +399,7 @@ function registerGlobalHotkeys(config: AppConfig): void {
 
   const isGnomeWayland =
     isLinuxWayland && (process.env.XDG_CURRENT_DESKTOP ?? "").toLowerCase().includes("gnome");
-  const hasBareFunctionKeys = [...Object.values(hotkeyMap), toggleVisibilityAccelerator].some(
+  const hasBareFunctionKeys = [...Object.values(hotkeyMap), toggleVisibilityAccelerator, openViewerAccelerator].some(
     (accelerator) => /^f\d{1,2}$/i.test(accelerator)
   );
   if (isGnomeWayland && hasBareFunctionKeys) {
@@ -432,6 +436,20 @@ function registerGlobalHotkeys(config: AppConfig): void {
       );
     } else {
       console.log(`Registered global shortcut for toggleVisibility: ${toggleVisibilityAccelerator}`);
+    }
+  }
+
+  if (openViewerAccelerator) {
+    const ok = globalShortcut.register(openViewerAccelerator, () => {
+      void showViewerWindow();
+    });
+    if (!ok) {
+      console.warn(
+        `Failed to register global shortcut for openViewer: ${openViewerAccelerator}. ` +
+          "This often means the key is reserved by the OS or desktop environment."
+      );
+    } else {
+      console.log(`Registered global shortcut for openViewer: ${openViewerAccelerator}`);
     }
   }
 }
@@ -611,20 +629,6 @@ function setupIpc(): void {
   ipcMain.handle("app:open-viewer", async () => {
     await showViewerWindow();
   });
-  ipcMain.handle("app:set-click-through", (_event, enabled: boolean) => {
-    if (!mainWindow || mainWindow.isDestroyed() || !initialData) {
-      return;
-    }
-    if (!initialData.config.window.clickThrough) {
-      mainWindow.setIgnoreMouseEvents(false);
-      return;
-    }
-    if (enabled) {
-      mainWindow.setIgnoreMouseEvents(true, { forward: true });
-      return;
-    }
-    mainWindow.setIgnoreMouseEvents(false);
-  });
   ipcMain.handle("app:start-practice", (_event, config: PracticeSessionConfig) => {
     hideViewerWindow();
     showMainWindow();
@@ -638,6 +642,14 @@ function setupIpc(): void {
       return false;
     }
     return mainWindow.isVisible();
+  });
+  ipcMain.handle("app:import-build", async (_event, request: ImportPreviewRequest) => {
+    const buildsPath = resolveBuildsDirectoryPath();
+    const result = runImport(buildsPath, request);
+    if (result.applied) {
+      await reloadAppData();
+    }
+    return result;
   });
   ipcMain.handle("app:open-builds-directory", async () => {
     const buildsDirectoryPath = resolveBuildsDirectoryPath();
