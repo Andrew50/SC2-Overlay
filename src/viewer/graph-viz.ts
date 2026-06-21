@@ -15,6 +15,12 @@ export interface GraphElementNode {
   };
 }
 
+export interface DecisionLabelRef {
+  buildId: string;
+  branchId: string;
+  slot: "1" | "2" | "3";
+}
+
 export interface GraphElementEdge {
   group: "edges";
   data: {
@@ -24,6 +30,7 @@ export interface GraphElementEdge {
     label: string;
     edgeKind: "sequential" | "branch";
     minLen: number;
+    decisionRef?: DecisionLabelRef;
   };
 }
 
@@ -80,12 +87,37 @@ function resolveBuildEntry(graph: ResolvedBuildGraph, buildNodeId: string): stri
   }
 }
 
-function getDecisionBranches(decisionNode: DecisionNodeEntry): Array<{ label: string; target: string }> {
-  const branches = [decisionNode.left, decisionNode.middle];
+function branchIdFromDecisionNodeId(decisionNodeId: string): string {
+  const suffix = "__decision";
+  if (!decisionNodeId.endsWith(suffix)) {
+    throw new Error(`Expected decision node id to end with "${suffix}", got "${decisionNodeId}"`);
+  }
+  return decisionNodeId.slice(0, -suffix.length);
+}
+
+function getDecisionBranches(
+  decisionNode: DecisionNodeEntry
+): Array<{ label: string; target: string; slot: DecisionLabelRef["slot"] }> {
+  const branches: Array<{ label: string; target: string; slot: DecisionLabelRef["slot"] }> = [
+    { ...decisionNode.left, slot: "1" },
+    { ...decisionNode.middle, slot: "2" }
+  ];
   if (decisionNode.right) {
-    branches.push(decisionNode.right);
+    branches.push({ ...decisionNode.right, slot: "3" });
   }
   return branches;
+}
+
+function decisionRefForBranch(
+  graph: ResolvedBuildGraph,
+  decisionNodeId: string,
+  slot: DecisionLabelRef["slot"]
+): DecisionLabelRef {
+  return {
+    buildId: graph.id,
+    branchId: branchIdFromDecisionNodeId(decisionNodeId),
+    slot
+  };
 }
 
 class StepGraphBuilder {
@@ -100,7 +132,12 @@ class StepGraphBuilder {
     this.graph = graph;
   }
 
-  private addEdge(source: string, target: string, branchLabel?: string): void {
+  private addEdge(
+    source: string,
+    target: string,
+    branchLabel?: string,
+    decisionRef?: DecisionLabelRef
+  ): void {
     const edgeKind = branchLabel ? "branch" : "sequential";
     const key = branchLabel ? `${source}|${target}|${branchLabel}` : `${source}|${target}|seq`;
     if (this.edgeKeys.has(key)) {
@@ -116,7 +153,8 @@ class StepGraphBuilder {
         target,
         label: branchLabel ?? "",
         edgeKind,
-        minLen: edgeKind === "sequential" ? 1 : 5
+        minLen: edgeKind === "sequential" ? 1 : 5,
+        ...(decisionRef ? { decisionRef } : {})
       }
     });
   }
@@ -187,8 +225,14 @@ class StepGraphBuilder {
     }
 
     if (nextNode.type === "decision") {
+      const decisionNodeId = node.next;
       for (const branch of getDecisionBranches(nextNode)) {
-        this.connectToBuildNode(branch.target, tailStepId, branch.label);
+        this.connectToBuildNode(
+          branch.target,
+          tailStepId,
+          branch.label,
+          decisionRefForBranch(this.graph, decisionNodeId, branch.slot)
+        );
       }
       return;
     }
@@ -196,7 +240,12 @@ class StepGraphBuilder {
     this.connectToBuildNode(node.next, tailStepId);
   }
 
-  private connectToBuildNode(buildNodeId: string, fromStepId: string | null, branchLabel?: string): void {
+  private connectToBuildNode(
+    buildNodeId: string,
+    fromStepId: string | null,
+    branchLabel?: string,
+    decisionRef?: DecisionLabelRef
+  ): void {
     let currentId = buildNodeId;
     const visited = new Set<string>();
 
@@ -217,7 +266,7 @@ class StepGraphBuilder {
         const tailStepId = stepIds[stepIds.length - 1]!;
 
         if (fromStepId) {
-          this.addEdge(fromStepId, firstStepId, branchLabel);
+          this.addEdge(fromStepId, firstStepId, branchLabel, decisionRef);
         }
 
         if (this.expandedBuildNodes.has(currentId)) {
@@ -249,8 +298,14 @@ class StepGraphBuilder {
         }
         this.expandedBuildNodes.add(expansionKey);
 
+        const decisionNodeId = node.next;
         for (const branch of getDecisionBranches(nextNode)) {
-          this.connectToBuildNode(branch.target, anchorStepId, branch.label);
+          this.connectToBuildNode(
+            branch.target,
+            anchorStepId,
+            branch.label,
+            decisionRefForBranch(this.graph, decisionNodeId, branch.slot)
+          );
         }
         return;
       }

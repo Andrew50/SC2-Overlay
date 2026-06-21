@@ -9,10 +9,12 @@ import { collectBuildOrders, type BuildOrderPath } from "../core/graph-traversal
 import { practiceConfigFromPath } from "../core/practice-session";
 import { hasActiveLeaf } from "../core/decision-resolution";
 import type { SetBranchDisabledRequest, SetBranchDisabledResponse } from "../core/branch-state/types";
+import type { UpdateDecisionLabelRequest, UpdateDecisionLabelResponse } from "../core/update-decision-label/types";
 import {
   buildStepGraph,
   collectAncestors,
   collectDescendants,
+  type DecisionLabelRef,
   type StepGraphView
 } from "./graph-viz";
 
@@ -32,6 +34,7 @@ const resetBtn = document.querySelector<HTMLButtonElement>("#reset-btn");
 const backToOverlayBtn = document.querySelector<HTMLButtonElement>("#back-to-overlay-btn");
 const practiceBtn = document.querySelector<HTMLButtonElement>("#practice-btn");
 const cyContainer = document.getElementById("cy");
+const graphStatusEl = document.getElementById("graph-status");
 
 let appData: InitialAppData | null = null;
 let activeRace: PlayerRaceOption | null = null;
@@ -46,6 +49,8 @@ let importModeActive = false;
 let previewNewBranchId: string | null = null;
 let previewParsedName: string | undefined;
 let lastPanPoint = { x: 0, y: 0 };
+let edgeLabelEditorEl: HTMLInputElement | null = null;
+let edgeLabelEditorCleanup: (() => void) | null = null;
 
 const IMPORT_LABEL_SUFFIX = "[imported]";
 
@@ -317,7 +322,8 @@ function createCyStyles() {
         "text-background-opacity": 0.85,
         "text-background-padding": 2,
         "text-wrap": "wrap",
-        "text-max-width": 140
+        "text-max-width": 140,
+        "text-events": "yes"
       }
     },
     {
@@ -901,7 +907,154 @@ function selectStepNode(stepId: string): void {
   });
 }
 
+function setGraphStatus(message: string, kind: "" | "ok" | "error" = ""): void {
+  if (!graphStatusEl) {
+    return;
+  }
+  graphStatusEl.textContent = message;
+  graphStatusEl.className = kind ? `graph-status ${kind}` : "graph-status";
+}
+
+function dismissEdgeLabelEditor(): void {
+  edgeLabelEditorCleanup?.();
+  edgeLabelEditorCleanup = null;
+  edgeLabelEditorEl?.remove();
+  edgeLabelEditorEl = null;
+}
+
+async function updateDecisionLabelClient(req: UpdateDecisionLabelRequest): Promise<UpdateDecisionLabelResponse> {
+  if (window.overlayApi?.updateDecisionLabel) {
+    return window.overlayApi.updateDecisionLabel(req);
+  }
+  const response = await fetch("/api/update-decision-label", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req)
+  });
+  return (await response.json()) as UpdateDecisionLabelResponse;
+}
+
+function positionEdgeLabelEditor(edge: cytoscape.EdgeSingular, input: HTMLInputElement): void {
+  if (!cy) {
+    return;
+  }
+  const midpoint = edge.renderedMidpoint();
+  input.style.left = `${midpoint.x}px`;
+  input.style.top = `${midpoint.y}px`;
+}
+
+function showEdgeLabelEditor(edge: cytoscape.EdgeSingular, decisionRef: DecisionLabelRef): void {
+  if (!cy || !cyContainer || importModeActive) {
+    return;
+  }
+
+  dismissEdgeLabelEditor();
+
+  const initialLabel = edge.data("label") as string;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "edge-label-editor";
+  input.value = initialLabel;
+  input.setAttribute("aria-label", "Edit branch label");
+  cyContainer.appendChild(input);
+  edgeLabelEditorEl = input;
+  positionEdgeLabelEditor(edge, input);
+
+  let committed = false;
+
+  const reposition = (): void => {
+    positionEdgeLabelEditor(edge, input);
+  };
+
+  cy.on("pan zoom resize", reposition);
+
+  const cleanup = (): void => {
+    cy?.off("pan zoom resize", reposition);
+  };
+  edgeLabelEditorCleanup = cleanup;
+
+  const commit = async (): Promise<void> => {
+    if (committed) {
+      return;
+    }
+    committed = true;
+
+    const nextLabel = input.value.trim();
+    dismissEdgeLabelEditor();
+
+    if (nextLabel.length === 0) {
+      setGraphStatus("Label cannot be empty.", "error");
+      return;
+    }
+    if (nextLabel === initialLabel) {
+      return;
+    }
+
+    setGraphStatus("Saving label…");
+    try {
+      const result = await updateDecisionLabelClient({
+        buildId: decisionRef.buildId,
+        branchId: decisionRef.branchId,
+        slot: decisionRef.slot,
+        label: nextLabel
+      });
+
+      if (!result.ok) {
+        edge.data("label", initialLabel);
+        setGraphStatus(result.error ?? "Failed to save label.", "error");
+        return;
+      }
+
+      setGraphStatus("Label saved.", "ok");
+      await refreshData();
+    } catch (error) {
+      edge.data("label", initialLabel);
+      setGraphStatus(error instanceof Error ? error.message : String(error), "error");
+    }
+  };
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void commit();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      committed = true;
+      dismissEdgeLabelEditor();
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    void commit();
+  });
+
+  input.focus();
+  input.select();
+}
+
+function setupBranchLabelEditing(): void {
+  if (!cy) {
+    return;
+  }
+
+  cy.on("dbltap", "edge[edgeKind = 'branch']", (event) => {
+    if (importModeActive) {
+      return;
+    }
+
+    const edge = event.target;
+    const decisionRef = edge.data("decisionRef") as DecisionLabelRef | undefined;
+    if (!decisionRef) {
+      return;
+    }
+
+    event.stopPropagation();
+    showEdgeLabelEditor(edge, decisionRef);
+  });
+}
+
 function instantiateCy(elements: ElementDefinition[]): Core {
+  dismissEdgeLabelEditor();
   if (cy) {
     cy.destroy();
   }
@@ -944,6 +1097,9 @@ function mountGraph(option: PlayerRaceOption): void {
       resetSelection();
     }
   });
+
+  setupBranchLabelEditing();
+  setGraphStatus("Double-click a branch label to rename it.");
 
   renderPathSelector(activePaths);
   renderBranchControl(null);

@@ -8,6 +8,8 @@ import { runImport } from "../src/core/import/service";
 import { setBranchDisabled } from "../src/core/branch-state/service";
 import type { ImportPreviewRequest } from "../src/core/import/types";
 import type { SetBranchDisabledRequest } from "../src/core/branch-state/types";
+import { updateDecisionLabel } from "../src/core/update-decision-label/service";
+import type { UpdateDecisionLabelRequest } from "../src/core/update-decision-label/types";
 import type { AppConfig, ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -663,6 +665,14 @@ function setupIpc(): void {
   ipcMain.handle("app:set-branch-disabled", async (_event, request: SetBranchDisabledRequest) => {
     const buildsPath = resolveBuildsDirectoryPath();
     const result = setBranchDisabled(buildsPath, request);
+    if (result.ok) {
+      await reloadAppData();
+    }
+    return result;
+  });
+  ipcMain.handle("app:update-decision-label", async (_event, request: UpdateDecisionLabelRequest) => {
+    const buildsPath = resolveBuildsDirectoryPath();
+    const result = updateDecisionLabel(buildsPath, request);
     if (result.ok) {
       await reloadAppData();
     }

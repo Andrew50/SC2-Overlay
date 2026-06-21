@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
 import type { ImportPreviewRequest, ImportPreviewResponse } from "../src/core/import/types";
 import type { SetBranchDisabledRequest, SetBranchDisabledResponse } from "../src/core/branch-state/types";
+import type {
+  UpdateDecisionLabelRequest,
+  UpdateDecisionLabelResponse
+} from "../src/core/update-decision-label/types";
 
 type UnsubscribeFn = () => void;
 
@@ -12,6 +16,8 @@ const api = {
     ipcRenderer.invoke("app:import-build", request),
   setBranchDisabled: (request: SetBranchDisabledRequest): Promise<SetBranchDisabledResponse> =>
     ipcRenderer.invoke("app:set-branch-disabled", request),
+  updateDecisionLabel: (request: UpdateDecisionLabelRequest): Promise<UpdateDecisionLabelResponse> =>
+    ipcRenderer.invoke("app:update-decision-label", request),
   openBuildsDirectory: (): Promise<string> => ipcRenderer.invoke("app:open-builds-directory"),
   resizeOverlay: (height: number): Promise<void> => ipcRenderer.invoke("app:resize-overlay", height),
   toggleOverlayVisibility: (): Promise<boolean> => ipcRenderer.invoke("app:toggle-overlay-visibility"),

@@ -5,6 +5,8 @@ import { runImport } from "./src/core/import/service";
 import { setBranchDisabled } from "./src/core/branch-state/service";
 import type { ImportPreviewRequest } from "./src/core/import/types";
 import type { SetBranchDisabledRequest } from "./src/core/branch-state/types";
+import { updateDecisionLabel } from "./src/core/update-decision-label/service";
+import type { UpdateDecisionLabelRequest } from "./src/core/update-decision-label/types";
 
 function readJsonBody(req: import("node:http").IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -71,6 +73,26 @@ function buildGraphApiPlugin(): Plugin {
             const config = loadConfig();
             const buildsPath = path.resolve(process.cwd(), config.data.buildsPath);
             const result = setBranchDisabled(buildsPath, requestBody);
+            res.end(JSON.stringify(result));
+          } catch (error) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : String(error) }));
+          }
+        })();
+      });
+
+      server.middlewares.use("/api/update-decision-label", (req, res, next) => {
+        if (req.method !== "POST") {
+          next();
+          return;
+        }
+        void (async () => {
+          res.setHeader("Content-Type", "application/json");
+          try {
+            const requestBody = (await readJsonBody(req)) as UpdateDecisionLabelRequest;
+            const config = loadConfig();
+            const buildsPath = path.resolve(process.cwd(), config.data.buildsPath);
+            const result = updateDecisionLabel(buildsPath, requestBody);
             res.end(JSON.stringify(result));
           } catch (error) {
             res.statusCode = 500;

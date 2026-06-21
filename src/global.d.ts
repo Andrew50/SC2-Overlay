@@ -1,6 +1,7 @@
 import type { ControlAction, InitialAppData, PracticeSessionConfig } from "./core/types";
 import type { ImportPreviewRequest, ImportPreviewResponse } from "./core/import/types";
 import type { SetBranchDisabledRequest, SetBranchDisabledResponse } from "./core/branch-state/types";
+import type { UpdateDecisionLabelRequest, UpdateDecisionLabelResponse } from "./core/update-decision-label/types";
 
 declare global {
   interface Window {
@@ -9,6 +10,7 @@ declare global {
       reloadData: () => Promise<InitialAppData>;
       importBuild: (request: ImportPreviewRequest) => Promise<ImportPreviewResponse>;
       setBranchDisabled: (request: SetBranchDisabledRequest) => Promise<SetBranchDisabledResponse>;
+      updateDecisionLabel: (request: UpdateDecisionLabelRequest) => Promise<UpdateDecisionLabelResponse>;
       openBuildsDirectory: () => Promise<string>;
       resizeOverlay: (height: number) => Promise<void>;
       toggleOverlayVisibility: () => Promise<boolean>;
