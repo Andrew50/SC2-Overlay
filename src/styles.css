@@ -26,23 +26,23 @@ body {
 }
 
 .top-line {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  min-width: 0;
   padding: 2px 2px 4px;
 }
 
 .top-line strong {
   font-size: 1.2rem;
   letter-spacing: 0.03em;
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.top-line span {
+.branch-label {
   color: #9ec2ff;
   font-size: 0.8rem;
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -61,7 +61,7 @@ body {
 .action-block {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(4.75rem, max-content);
   align-items: center;
   gap: 8px;
   background: rgba(23, 28, 41, 0.9);
@@ -117,6 +117,7 @@ body {
   font-size: 0.76rem;
   white-space: nowrap;
   justify-self: end;
+  min-width: max-content;
 }
 
 .action-text {

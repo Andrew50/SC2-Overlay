@@ -177,6 +177,11 @@ function formatRaceLabel(playerRace?: PlayerRace): string {
   return playerRace.toUpperCase();
 }
 
+function setBranchLabel(branchValue: HTMLElement, label: string): void {
+  branchValue.textContent = label;
+  branchValue.title = label;
+}
+
 function applyUiScale(fontScale: number, scale: number): void {
   const normalizedFontScale = Number.isFinite(fontScale) ? Math.max(0.1, fontScale) : 1;
   const normalizedScale = Number.isFinite(scale) ? Math.max(0.1, scale) : 1;
@@ -205,7 +210,7 @@ function requestOverlayResize(): void {
     if (!panel) {
       return;
     }
-    const nextHeight = Math.max(1, Math.ceil(panel.getBoundingClientRect().height + 2));
+    const nextHeight = Math.max(1, Math.ceil(panel.offsetHeight + 2));
     if (nextHeight === lastRequestedOverlayHeight) {
       return;
     }
@@ -1071,13 +1076,13 @@ function render(state: AppState): void {
   const visibleQueueCount = getVisibleQueueCount(state);
   state.currentBranchLabel = getFarthestResolvedBranchLabel(state);
   timerValue.textContent = formatTimerDisplay(state.timerSeconds);
-  branchValue.textContent = state.currentBranchLabel;
+  setBranchLabel(branchValue, state.currentBranchLabel);
   upcomingDecisions.innerHTML = "";
   decisionContent.innerHTML = "";
 
   if (!state.timerStarted) {
     if (state.pendingPractice) {
-      branchValue.textContent = state.pendingPractice.branchLabel;
+      setBranchLabel(branchValue, state.pendingPractice.branchLabel);
       setActionQueueHtml(
         actionQueue,
         renderSelectionRows(state, [{ key: "left", label: "Start" }])
