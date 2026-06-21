@@ -549,3 +549,57 @@ export function loadInitialData() {
   const raceOptions = loadPlayerRaceOptions(config);
   return { config, raceOptions };
 }
+
+/**
+ * Validate a compact build file in memory without throwing. Returns the AJV
+ * schema errors plus any graph-resolution errors (the latter only when a root
+ * branch is supplied so the file can be resolved standalone).
+ */
+export function validateCompactBuild(
+  build: unknown,
+  options: { buildId?: string; rootBranchId?: string; race?: OpponentRace } = {}
+): { ok: boolean; errors: string[] } {
+  ensureValidators();
+  const validator = validateBuildFn;
+  if (!validator) {
+    return { ok: false, errors: ["Build validator was not initialized."] };
+  }
+  if (!validator(build)) {
+    return { ok: false, errors: [ajv.errorsText(validator.errors)] };
+  }
+
+  if (options.rootBranchId && options.race) {
+    try {
+      resolveCompactFileToGraph(build as CompactBuildFile, {
+        buildId: options.buildId ?? "in-memory",
+        rootBranchId: options.rootBranchId,
+        race: options.race
+      });
+    } catch (error) {
+      return { ok: false, errors: [(error as Error).message] };
+    }
+  }
+
+  return { ok: true, errors: [] };
+}
+
+/**
+ * Resolve a single in-memory compact build file into a graph, treating it as
+ * self-contained (cross-file `buildId:branch` references are not resolved here).
+ * Intended for tooling such as the build-order importer.
+ */
+export function resolveCompactFileToGraph(
+  compact: CompactBuildFile,
+  options: { buildId: string; rootBranchId: string; race: OpponentRace }
+): ResolvedBuildGraph {
+  const sources = new Map<string, BuildSource>([
+    [options.buildId, { id: options.buildId, filePath: options.buildId, build: compact }]
+  ]);
+  const graph = resolveBuildById(options.buildId, sources, options.race);
+  if (!graph.nodes[options.rootBranchId]) {
+    throw new Error(`Root branch "${options.rootBranchId}" not found in build "${options.buildId}".`);
+  }
+  graph.rootNodeId = options.rootBranchId;
+  validateGraphReferences(graph);
+  return graph;
+}

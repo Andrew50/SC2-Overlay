@@ -1,6 +1,10 @@
 import cytoscape, { type Core, type ElementDefinition } from "cytoscape";
 import dagre from "cytoscape-dagre";
 import type { AppConfig, BuildStep, InitialAppData, PlayerRaceOption, ResolvedBuildGraph } from "../core/types";
+import type {
+  ImportPreviewRequest as ImportRequest,
+  ImportPreviewResponse as ImportResponse
+} from "../core/import/types";
 import { collectBuildOrders, type BuildOrderPath } from "../core/graph-traversal";
 import { practiceConfigFromPath } from "../core/practice-session";
 import {
@@ -31,7 +35,17 @@ let selectedPathIndex: number | null = null;
 let cy: Core | null = null;
 let isMiddlePanning = false;
 let isSidebarResizing = false;
+let importModeActive = false;
+let previewNewBranchId: string | null = null;
+let previewParsedName: string | undefined;
 let lastPanPoint = { x: 0, y: 0 };
+
+const IMPORT_LABEL_SUFFIX = "[imported]";
+
+function importBranchLabel(name: string | undefined): string {
+  const base = (name && name.trim()) || previewParsedName || "Imported Build";
+  return `${base} ${IMPORT_LABEL_SUFFIX}`;
+}
 
 const ZOOM_STEP = 1.15;
 
@@ -251,6 +265,31 @@ function createCyStyles() {
       }
     },
     {
+      selector: "node.import-added",
+      style: {
+        "background-color": "#15803d",
+        "border-color": "#4ade80",
+        "border-width": 4,
+        "border-style": "dashed",
+        color: "#f0fdf4"
+      }
+    },
+    {
+      selector: "node.import-changed",
+      style: {
+        "border-color": "#f59e0b",
+        "border-width": 4,
+        "border-style": "dashed"
+      }
+    },
+    {
+      selector: "node.import-branch-point",
+      style: {
+        "border-color": "#fde047",
+        "border-width": 5
+      }
+    },
+    {
       selector: "edge",
       style: {
         width: 2,
@@ -280,6 +319,24 @@ function createCyStyles() {
         width: 3,
         "line-color": "#f8fafc",
         "target-arrow-color": "#f8fafc"
+      }
+    },
+    {
+      selector: "edge.import-added",
+      style: {
+        width: 3,
+        "line-color": "#4ade80",
+        "target-arrow-color": "#4ade80",
+        "line-style": "dashed"
+      }
+    },
+    {
+      selector: "edge.import-changed",
+      style: {
+        width: 2.5,
+        "line-color": "#f59e0b",
+        "target-arrow-color": "#f59e0b",
+        "line-style": "dashed"
       }
     },
     {
@@ -631,19 +688,12 @@ function selectStepNode(stepId: string): void {
   });
 }
 
-function mountGraph(option: PlayerRaceOption): void {
-  activeRace = option;
-  activePaths = collectBuildOrders(option.graph);
-  selectedPathIndex = null;
-  updatePracticeButtonState();
-  activeStepGraph = buildStepGraph(option.graph);
-  const elements = activeStepGraph.elements as ElementDefinition[];
-
+function instantiateCy(elements: ElementDefinition[]): Core {
   if (cy) {
     cy.destroy();
   }
 
-  cy = cytoscape({
+  return cytoscape({
     container: document.getElementById("cy"),
     elements,
     style: createCyStyles(),
@@ -660,6 +710,17 @@ function mountGraph(option: PlayerRaceOption): void {
     maxZoom: 2.5,
     wheelSensitivity: 0.2
   });
+}
+
+function mountGraph(option: PlayerRaceOption): void {
+  activeRace = option;
+  activePaths = collectBuildOrders(option.graph);
+  selectedPathIndex = null;
+  updatePracticeButtonState();
+  activeStepGraph = buildStepGraph(option.graph);
+  const elements = activeStepGraph.elements as ElementDefinition[];
+
+  cy = instantiateCy(elements);
 
   cy.on("tap", "node", (event) => {
     selectStepNode(event.target.id());
@@ -680,6 +741,96 @@ function mountGraph(option: PlayerRaceOption): void {
   cy.ready(() => {
     cy?.fit(undefined, 40);
   });
+}
+
+/**
+ * Render the proposed merge graph (preview mode): the patched build resolved
+ * into a step graph, with the imported branch and changed structure highlighted
+ * so the diff is visible right at the branch point. Does not touch the browse
+ * state (activeRace/activePaths) so it can be restored on cancel.
+ */
+function mountPreviewGraph(patchedGraph: ResolvedBuildGraph, newBranchId: string): void {
+  const previewStepGraph = buildStepGraph(patchedGraph);
+  const elements = previewStepGraph.elements as ElementDefinition[];
+
+  cy = instantiateCy(elements);
+  previewNewBranchId = newBranchId;
+
+  const originalIds = new Set<string>(activeStepGraph ? activeStepGraph.stepMeta.keys() : []);
+  const addedPrefix = `${newBranchId}::`;
+  const addedIds = new Set<string>();
+
+  cy.nodes().forEach((node) => {
+    const id = node.id();
+    if (originalIds.has(id)) {
+      return;
+    }
+    if (id.startsWith(addedPrefix)) {
+      node.addClass("import-added");
+      addedIds.add(id);
+    } else {
+      node.addClass("import-changed");
+    }
+  });
+
+  cy.edges().forEach((edge) => {
+    const source = edge.source().id();
+    const target = edge.target().id();
+    const sourceNew = !originalIds.has(source);
+    const targetNew = !originalIds.has(target);
+    if (target.startsWith(addedPrefix) || source.startsWith(addedPrefix)) {
+      edge.addClass("import-added");
+    } else if (sourceNew && targetNew) {
+      edge.addClass("import-changed");
+    }
+  });
+
+  // Mark the step the import branches off from (parent of the first imported
+  // node) so the divergence point is obvious. This is an existing shared step
+  // for split/decision merges, or the synthesized start anchor at the root.
+  const firstAddedId = `${newBranchId}::0`;
+  const branchPointEles = cy.$id(firstAddedId).incomers("node");
+  branchPointEles.forEach((node) => {
+    node.removeClass("import-changed");
+    node.addClass("import-branch-point");
+  });
+
+  cy.ready(() => {
+    if (!cy) {
+      return;
+    }
+    const focus = cy.collection().union(branchPointEles);
+    addedIds.forEach((id) => {
+      focus.merge(cy!.$id(id));
+    });
+    if (focus.nonempty()) {
+      cy.fit(focus, 80);
+    } else {
+      cy.fit(undefined, 40);
+    }
+  });
+}
+
+/**
+ * Live-update the imported branch's edge label in the preview graph as the
+ * author edits the name field, without recomputing the whole merge.
+ */
+function updateImportBranchLabel(name: string | undefined): void {
+  if (!cy || !previewNewBranchId) {
+    return;
+  }
+  const firstAddedId = `${previewNewBranchId}::0`;
+  const label = importBranchLabel(name);
+  cy.edges().forEach((edge) => {
+    if (edge.data("edgeKind") === "branch" && edge.target().id() === firstAddedId) {
+      edge.data("label", label);
+    }
+  });
+}
+
+function clearPreviewGraphState(): void {
+  previewNewBranchId = null;
+  previewParsedName = undefined;
 }
 
 function resetSelection(): void {
@@ -771,7 +922,268 @@ practiceBtn?.addEventListener("click", () => {
   void window.overlayApi.startPractice(config);
 });
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const IMPORT_ACTION_LABELS: Record<string, string> = {
+  "new-root-child": "Branches at the race root (no shared prefix found)",
+  "split-branch": "Splits an existing branch at the divergence point",
+  "add-decision-option": "Adds a new option to an existing decision",
+  extend: "Extends an existing build path"
+};
+
+async function importClient(request: ImportRequest): Promise<ImportResponse> {
+  if (window.overlayApi?.importBuild) {
+    return window.overlayApi.importBuild(request);
+  }
+  const response = await fetch("/api/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request)
+  });
+  return (await response.json()) as ImportResponse;
+}
+
+function renderImportResult(target: HTMLElement, result: ImportResponse): void {
+  if (!result.ok) {
+    target.innerHTML = `<div class="result-summary"><span class="result-badge error">Error</span><span>${escapeHtml(
+      result.error ?? "Import failed."
+    )}</span></div>`;
+    return;
+  }
+
+  const blocks: string[] = [];
+  const valid = (result.validationErrors?.length ?? 0) === 0;
+  const warnings = [...(result.parserWarnings ?? []), ...(result.planWarnings ?? [])];
+
+  const summaryParts: string[] = [
+    `<span class="result-badge ${valid ? "ok" : "error"}">${valid ? "Valid" : "Invalid"}</span>`,
+    `<span>${escapeHtml(IMPORT_ACTION_LABELS[result.action ?? ""] ?? result.action ?? "")}</span>`
+  ];
+  if (warnings.length > 0) {
+    summaryParts.push(`<span class="result-badge warn">${warnings.length} warning(s)</span>`);
+  }
+  blocks.push(`<div class="result-summary">${summaryParts.join("")}</div>`);
+
+  const matchNote =
+    result.matchedStepCount != null && result.divergeNodeId
+      ? `Matched ${result.matchedStepCount} step(s); diverges at <strong>${escapeHtml(
+          result.divergeNodeId
+        )}</strong> step ${result.divergeStepIndex ?? 0}.`
+      : "No shared prefix; the import becomes a new option at the race root.";
+  blocks.push(
+    `<div class="result-note">${escapeHtml(result.format ?? "")} &middot; ${result.stepsParsed ?? 0} steps parsed &middot; new branch <strong>${escapeHtml(
+      result.newBranchId ?? ""
+    )}</strong>.<br>${matchNote}</div>`
+  );
+
+  if (warnings.length > 0) {
+    blocks.push(`<ul class="warn-list">${warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>`);
+  }
+  if (!valid) {
+    blocks.push(
+      `<ul class="error-list">${(result.validationErrors ?? [])
+        .map((e) => `<li>${escapeHtml(e)}</li>`)
+        .join("")}</ul>`
+    );
+  }
+
+  if (result.diff) {
+    const added = new Set(result.diff.addedBranches);
+    const lines: string[] = ['<div class="diff-block">'];
+    let currentBranch = "";
+    for (const step of result.diff.steps) {
+      if (step.branchId !== currentBranch) {
+        currentBranch = step.branchId;
+        const tag = added.has(currentBranch)
+          ? '<span class="diff-tag added">new branch</span>'
+          : '<span class="diff-tag">modified</span>';
+        lines.push(
+          `<div class="diff-branch"><span class="diff-branch-name">${escapeHtml(currentBranch)}</span>${tag}</div>`
+        );
+      }
+      const marker = step.kind === "added" ? "+" : "\u00a0";
+      lines.push(`<div class="diff-line ${step.kind}">${marker} ${escapeHtml(step.text)}</div>`);
+    }
+    lines.push("</div>");
+    blocks.push(lines.join(""));
+  }
+
+  target.innerHTML = blocks.join("");
+}
+
+function setupImport(): void {
+  const importBtn = document.getElementById("import-btn");
+  const browsePanel = document.getElementById("browse-panel");
+  const importPanel = document.getElementById("import-panel");
+  const closeBtn = document.getElementById("import-close");
+  const previewBtn = document.getElementById("import-preview-btn");
+  const applyBtn = document.getElementById("import-apply") as HTMLButtonElement | null;
+  const textEl = document.getElementById("import-text") as HTMLTextAreaElement | null;
+  const nameEl = document.getElementById("import-name") as HTMLInputElement | null;
+  const keepWorkersEl = document.getElementById("import-keep-workers") as HTMLInputElement | null;
+  const resultEl = document.getElementById("import-result");
+  const statusEl = document.getElementById("import-status");
+
+  if (!importBtn || !browsePanel || !importPanel || !textEl || !resultEl || !applyBtn || !statusEl) {
+    return;
+  }
+
+  let canApply = false;
+
+  const setStatus = (message: string, kind: "" | "ok" | "error" = ""): void => {
+    statusEl.textContent = message;
+    statusEl.className = `import-status${kind ? ` ${kind}` : ""}`;
+  };
+
+  const clearPreviewState = (): void => {
+    canApply = false;
+    applyBtn.disabled = true;
+    resultEl.classList.add("is-hidden");
+    resultEl.innerHTML = "";
+    clearPreviewGraphState();
+    setStatus("");
+  };
+
+  const enterImportMode = (): void => {
+    importModeActive = true;
+    browsePanel.classList.add("is-hidden");
+    importPanel.classList.remove("is-hidden");
+    importBtn.classList.add("is-active");
+    clearPreviewState();
+    textEl.focus();
+  };
+
+  const exitImportMode = (): void => {
+    importModeActive = false;
+    importPanel.classList.add("is-hidden");
+    browsePanel.classList.remove("is-hidden");
+    importBtn.classList.remove("is-active");
+    clearPreviewState();
+    if (activeRace) {
+      mountGraph(activeRace);
+    }
+  };
+
+  const buildRequest = (apply: boolean): ImportRequest | null => {
+    if (!activeRace) {
+      setStatus("Select a race first.", "error");
+      return null;
+    }
+    return {
+      text: textEl.value,
+      buildId: activeRace.buildId,
+      race: activeRace.playerRace,
+      name: nameEl?.value || undefined,
+      keepWorkers: Boolean(keepWorkersEl?.checked),
+      apply
+    };
+  };
+
+  const runPreview = async (): Promise<void> => {
+    const request = buildRequest(false);
+    if (!request) {
+      return;
+    }
+    setStatus("Computing merge…");
+    applyBtn.disabled = true;
+    canApply = false;
+    try {
+      const result = await importClient(request);
+      resultEl.classList.remove("is-hidden");
+      renderImportResult(resultEl, result);
+      canApply = result.ok && (result.validationErrors?.length ?? 0) === 0;
+      applyBtn.disabled = !canApply;
+      previewParsedName = result.name;
+
+      if (result.ok && result.patchedGraph && result.newBranchId) {
+        mountPreviewGraph(result.patchedGraph, result.newBranchId);
+        // Reflect whatever is currently typed in the name field immediately.
+        updateImportBranchLabel(nameEl?.value);
+        setStatus("Previewing merge — green is the imported branch.", "ok");
+      } else if (canApply) {
+        // Valid plan but no resolvable graph (rare); keep the browse graph.
+        setStatus("Merge computed (graph preview unavailable).", "ok");
+      } else {
+        setStatus(result.ok ? "Could not preview the merge graph." : "Could not compute a merge.", "error");
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error), "error");
+    }
+  };
+
+  const runApply = async (): Promise<void> => {
+    if (!canApply) {
+      return;
+    }
+    const request = buildRequest(true);
+    if (!request) {
+      return;
+    }
+    setStatus("Applying merge…");
+    applyBtn.disabled = true;
+    try {
+      const result = await importClient(request);
+      if (result.ok && result.applied) {
+        importModeActive = false;
+        textEl.value = "";
+        importPanel.classList.add("is-hidden");
+        browsePanel.classList.remove("is-hidden");
+        importBtn.classList.remove("is-active");
+        clearPreviewState();
+        setStatus("Merge applied. Refreshing graph…", "ok");
+        await refreshData();
+      } else {
+        renderImportResult(resultEl, result);
+        setStatus("Merge was not applied.", "error");
+        applyBtn.disabled = false;
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error), "error");
+    }
+  };
+
+  importBtn.addEventListener("click", () => {
+    if (importModeActive) {
+      exitImportMode();
+    } else {
+      enterImportMode();
+    }
+  });
+  closeBtn?.addEventListener("click", exitImportMode);
+  previewBtn?.addEventListener("click", () => void runPreview());
+  applyBtn.addEventListener("click", () => void runApply());
+  nameEl?.addEventListener("input", () => updateImportBranchLabel(nameEl.value));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && importModeActive && !isEditableTarget(event.target)) {
+      exitImportMode();
+    }
+  });
+}
+
+async function refreshData(): Promise<void> {
+  const previousRace = activeRace?.playerRace;
+  appData = await loadInitialData();
+  renderRaceTabs(appData.raceOptions);
+  const targetIndex = Math.max(
+    0,
+    appData.raceOptions.findIndex((option) => option.playerRace === previousRace)
+  );
+  const tabs = raceTabsEl?.querySelectorAll<HTMLButtonElement>(".race-tab");
+  if (tabs && tabs[targetIndex]) {
+    tabs[targetIndex].click();
+  } else if (appData.raceOptions[targetIndex]) {
+    mountGraph(appData.raceOptions[targetIndex]);
+  }
+}
+
 setupGraphNavigation();
 setupSidebarResize();
 setupLayoutResize();
+setupImport();
 void bootstrap();

@@ -1,11 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ControlAction, InitialAppData, PracticeSessionConfig } from "../src/core/types";
+import type { ImportPreviewRequest, ImportPreviewResponse } from "../src/core/import/types";
 
 type UnsubscribeFn = () => void;
 
 const api = {
   getInitialData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:get-initial-data"),
   reloadData: (): Promise<InitialAppData> => ipcRenderer.invoke("app:reload-data"),
+  importBuild: (request: ImportPreviewRequest): Promise<ImportPreviewResponse> =>
+    ipcRenderer.invoke("app:import-build", request),
   openBuildsDirectory: (): Promise<string> => ipcRenderer.invoke("app:open-builds-directory"),
   resizeOverlay: (height: number): Promise<void> => ipcRenderer.invoke("app:resize-overlay", height),
   toggleOverlayVisibility: (): Promise<boolean> => ipcRenderer.invoke("app:toggle-overlay-visibility"),

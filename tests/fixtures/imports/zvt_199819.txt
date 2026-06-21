@@ -1,0 +1,38 @@
+# ZvT Update Standard Opening (ZvT Economic)
+
+### Build Order
+
+Get SALT Encoding
+
+| 12 | 0:00 | Drone                                    |  |
+| -- | ---- | ---------------------------------------- |  |
+| 13 | 0:09 | Drone                                    |  |
+| 14 | 0:14 | Extractor Extractor Trick                |  |
+| 13 | 0:09 | Drone                                    |  |
+| 15 | 0:21 | Overlord                                 |  |
+| 15 | 0:39 | Drone                                    |  |
+| 16 | 0:45 | Hatchery 2nd                             |  |
+| 16 | 0:49 | Drone x2                                 |  |
+| 16 | 0:56 | Drone                                    |  |
+| 18 | 1:06 | Extractor 3 Drones                       |  |
+| 17 | 1:10 | Spawning Pool                            |  |
+| 16 | 1:14 | Drone x2                                 |  |
+| 18 | 1:26 | Drone                                    |  |
+| 21 | 1:57 | Queen x2                                 |  |
+| 21 | 1:59 | Zergling x2                              |  |
+| 21 | 2:00 | Overlord                                 |  |
+| 27 | 2:12 | Metabolic Boost Take drones off Gas      |  |
+| 31 | 2:33 | Queen Natural                            |  |
+| 34 | 2:43 | Hatchery 3rd                             |  |
+| 33 | 2:48 | Overlord                                 |  |
+| 33 | 2:54 | Overlord Ring of vision around your base |  |
+| 40 | 3:11 | Roach Warren Wall                        |  |
+| 45 | 3:18 | Extractor                                |  |
+| 45 | 3:20 | Queen 1st Inject Drones back to gas      |  |
+| 47 | 3:29 | Queen                                    |  |
+| 47 | 3:35 | Overlord                                 |  |
+| 55 | 3:50 | Roach x4 4 Safety Roaches                |  |
+| 65 | 4:27 | Spore Crawler x2 Main, Natural           |  |
+| 71 | 4:36 | Extractor x2                             |  |
+| 75 | 4:40 | Lair                                     |  |
+| 82 | 5:00 | Action 66 Drones,                        |  |

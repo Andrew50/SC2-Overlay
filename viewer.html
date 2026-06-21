@@ -21,6 +21,7 @@
           </div>
         </div>
         <div class="toolbar-actions">
+          <button type="button" id="import-btn" class="toolbar-btn import-btn">Import build</button>
           <button type="button" id="practice-btn" class="toolbar-btn practice-btn" disabled>
             Practice this build
           </button>
@@ -40,18 +41,56 @@
         <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
 
         <aside class="sidebar">
-          <section class="sidebar-section path-selector-section">
-            <h2>Build paths</h2>
-            <div id="path-selector" class="path-selector"></div>
-          </section>
+          <div id="browse-panel" class="sidebar-panel">
+            <section class="sidebar-section path-selector-section">
+              <h2>Build paths</h2>
+              <div id="path-selector" class="path-selector"></div>
+            </section>
 
-          <section class="sidebar-section build-order-section">
-            <h2>Build order</h2>
-            <div id="build-order" class="build-order muted">Select a build path to view its steps.</div>
-          </section>
+            <section class="sidebar-section build-order-section">
+              <h2>Build order</h2>
+              <div id="build-order" class="build-order muted">Select a build path to view its steps.</div>
+            </section>
+          </div>
+
+          <div id="import-panel" class="sidebar-panel import-panel is-hidden" aria-label="Import build order">
+            <section class="sidebar-section import-panel-head">
+              <div class="import-panel-title">
+                <h2>Import build</h2>
+                <button type="button" id="import-close" class="icon-btn" aria-label="Close import">&times;</button>
+              </div>
+              <p class="import-hint">
+                Paste a Spawning Tool build order (the table under <em>Build Order</em>) or a SALT string,
+                then preview to see the merge branch in the graph at the first real point of difference.
+              </p>
+              <label class="field">
+                <span class="field-label">Build order / SALT</span>
+                <textarea id="import-text" class="import-textarea" rows="7" spellcheck="false"
+                  placeholder="e.g.&#10;14 0:14 Extractor&#10;15 0:21 Overlord&#10;16 0:45 Hatchery"></textarea>
+              </label>
+              <label class="field">
+                <span class="field-label">Name</span>
+                <input id="import-name" class="import-input" type="text" placeholder="Imported build" />
+              </label>
+              <label class="field-checkbox">
+                <input id="import-keep-workers" type="checkbox" />
+                <span>Keep workers</span>
+              </label>
+              <div class="import-actions">
+                <button type="button" id="import-preview-btn" class="toolbar-btn">Preview merge</button>
+                <button type="button" id="import-apply" class="toolbar-btn apply-btn" disabled>Apply merge</button>
+              </div>
+              <span id="import-status" class="import-status"></span>
+            </section>
+
+            <section class="sidebar-section import-result-section">
+              <div id="import-result" class="import-result is-hidden"></div>
+            </section>
+          </div>
         </aside>
       </main>
     </div>
+
     <script type="module" src="/src/viewer/main.ts"></script>
   </body>
 </html>

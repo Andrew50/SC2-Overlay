@@ -121,6 +121,22 @@ class StepGraphBuilder {
     });
   }
 
+  private ensureRootAnchor(buildNodeId: string, decisionNode: DecisionNodeEntry): string {
+    const id = `${buildNodeId}::start`;
+    if (!this.nodes.has(id)) {
+      const timePart = decisionNode.time ? `${decisionNode.time} — ` : "";
+      this.nodes.set(id, {
+        group: "nodes",
+        data: {
+          id,
+          label: `${timePart}Build start`,
+          kind: "branch"
+        }
+      });
+    }
+    return id;
+  }
+
   private ensureStepChain(buildNodeId: string): string[] {
     const resolvedId = resolveBuildEntry(this.graph, buildNodeId);
     const node = this.graph.nodes[resolvedId];
@@ -222,9 +238,10 @@ class StepGraphBuilder {
       }
 
       if (nextNode.type === "decision") {
-        if (!fromStepId) {
-          throw new Error(`Decision-only branch "${currentId}" requires an incoming step`);
-        }
+        // A decision at the very root (no preceding step) is valid — e.g. an
+        // imported build branched in at the race root. Synthesize a start anchor
+        // so the decision options have a node to fan out from.
+        const anchorStepId = fromStepId ?? this.ensureRootAnchor(currentId, nextNode);
 
         const expansionKey = `${currentId}::decision`;
         if (this.expandedBuildNodes.has(expansionKey)) {
@@ -233,7 +250,7 @@ class StepGraphBuilder {
         this.expandedBuildNodes.add(expansionKey);
 
         for (const branch of getDecisionBranches(nextNode)) {
-          this.connectToBuildNode(branch.target, fromStepId, branch.label);
+          this.connectToBuildNode(branch.target, anchorStepId, branch.label);
         }
         return;
       }
