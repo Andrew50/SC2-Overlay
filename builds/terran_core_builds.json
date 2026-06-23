@@ -1128,7 +1128,12 @@
       {
         "time": "2:23",
         "supply": 24,
-        "action": "Refinery [second]"
+        "action": "Refinery [second; saturate immediately]"
+      },
+      {
+        "time": "2:40",
+        "supply": 26,
+        "action": "Supply Depot [inferred; prevents 31-supply block]"
       },
       {
         "time": "2:52",
@@ -1163,7 +1168,7 @@
       {
         "time": "3:23",
         "supply": 35,
-        "action": "Barracks"
+        "action": "Barracks [second production Barracks]"
       },
       {
         "time": "3:33",
@@ -1178,7 +1183,7 @@
       {
         "time": "3:36",
         "supply": 39,
-        "action": "Raven"
+        "action": "Raven [only Raven in this standard branch]"
       },
       {
         "time": "3:39",
@@ -1196,9 +1201,14 @@
         "action": "2x Marine"
       },
       {
+        "time": "3:52",
+        "supply": 43,
+        "action": "Marine production [continuous from Reactor Barracks]"
+      },
+      {
         "time": "4:02",
         "supply": 45,
-        "action": "Siege Tank"
+        "action": "Siege Tank [first; gas-tight]"
       },
       {
         "time": "4:03",
@@ -1213,17 +1223,22 @@
       {
         "time": "4:14",
         "supply": 49,
-        "action": "Barracks"
+        "action": "Barracks [third Barracks]"
       },
       {
         "time": "4:16",
         "supply": 52,
-        "action": "Barracks onto Factory Tech Lab [second swap; for Stimpack]"
+        "action": "Barracks onto Starport Tech Lab [second swap; for Stimpack]"
       },
       {
         "time": "4:17",
         "supply": 52,
         "action": "Stimpack"
+      },
+      {
+        "time": "4:20",
+        "supply": 52,
+        "action": "Marine production [continuous; spend minerals]"
       },
       {
         "time": "4:25",
@@ -1233,7 +1248,12 @@
       {
         "time": "4:35",
         "supply": 58,
-        "action": "Siege Tank"
+        "action": "Siege Tank [second]"
+      },
+      {
+        "time": "4:17",
+        "supply": 69,
+        "action": "Starport Reactor [after Barracks takes Tech Lab]"
       },
       {
         "time": "4:38",
@@ -1246,6 +1266,16 @@
         "action": "Refinery [third]"
       },
       {
+        "time": "4:45",
+        "supply": 63,
+        "action": "2x Supply Depot [inferred; source jumps to 68 supply]"
+      },
+      {
+        "time": "4:50",
+        "supply": 65,
+        "action": "Marine production [continuous from 3 Barracks]"
+      },
+      {
         "time": "5:04",
         "supply": 68,
         "action": "Terran Infantry Weapons Level 1"
@@ -1256,19 +1286,19 @@
         "action": "Refinery [fourth]"
       },
       {
-        "time": "5:12",
-        "supply": 69,
-        "action": "Starport Reactor [after Barracks takes Tech Lab]"
-      },
-      {
         "time": "5:17",
         "supply": 70,
         "action": "Factory Reactor [after Barracks takes rebuilt Tech Lab]"
       },
       {
+        "time": "5:18",
+        "supply": 72,
+        "action": "2x Supply Depot [inferred; prepares 75+ supply]"
+      },
+      {
         "time": "5:21",
         "supply": 75,
-        "action": "Barracks onto Starport Tech Lab [third swap; for Combat Shield]"
+        "action": "Barracks onto Factory Tech Lab [third swap; for Combat Shield]"
       },
       {
         "time": "5:22",
@@ -1276,14 +1306,24 @@
         "action": "Combat Shield"
       },
       {
+        "time": "5:24",
+        "supply": 75,
+        "action": "Marine/Marauder production [continuous]"
+      },
+      {
         "time": "5:34",
         "supply": 76,
         "action": "Command Center [third]"
       },
       {
+        "time": "5:45",
+        "supply": 82,
+        "action": "2x Supply Depot [inferred; prevents 85+ block]"
+      },
+      {
         "time": "5:55",
         "supply": 85,
-        "action": "2x Barracks"
+        "action": "2x Barracks [go to 5 Barracks total]"
       },
       {
         "time": "6:00",
@@ -1309,6 +1349,21 @@
         "time": "6:15",
         "supply": 85,
         "action": "2x Widow Mine"
+      },
+      {
+        "time": "6:20",
+        "supply": 92,
+        "action": "3x Supply Depot [inferred; prepare 100+ supply]"
+      },
+      {
+        "time": "6:30",
+        "supply": 98,
+        "action": "Marine/Marauder production [continuous]"
+      },
+      {
+        "time": "6:43",
+        "supply": 101,
+        "action": "2x Marauder"
       },
       {
         "time": "6:50",
