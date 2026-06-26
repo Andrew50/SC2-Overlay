@@ -3,7 +3,7 @@ import { resolveCompactFileToGraph, validateCompactBuild } from "../loader";
 import { parseSpawningToolText } from "./parse-text";
 import { decodeSalt } from "./parse-salt";
 import { findMergePoint } from "./match";
-import { planMerge, type PlanMergeOptions } from "./merge";
+import { planMerge, planNewBuild, type PlanMergeOptions } from "./merge";
 import { DEFAULT_MATCH_OPTIONS } from "./types";
 import type {
   ImportSourceFormat,
@@ -17,7 +17,7 @@ export * from "./types";
 export { parseSpawningToolText } from "./parse-text";
 export { decodeSalt } from "./parse-salt";
 export { findMergePoint } from "./match";
-export { planMerge } from "./merge";
+export { planMerge, planNewBuild } from "./merge";
 export { normalizeAction, inferRace } from "./normalize";
 export { renderMergeDiff } from "./diff";
 
@@ -86,6 +86,25 @@ export function importBuildOrder(
     skipWorkers: options.skipWorkers ?? DEFAULT_MATCH_OPTIONS.skipWorkers
   };
 
+  const planOptions: PlanMergeOptions = {
+    ...matchOptions,
+    race,
+    importName: options.importName ?? parsed.name ?? "Imported Build",
+    outputSkipWorkers: options.outputSkipWorkers ?? true
+  };
+
+  // No existing root for this race (empty/new file): the import becomes the
+  // race root directly, so there is nothing to merge against.
+  if (!compact[rootBranchId]) {
+    const plan = planNewBuild(compact, parsed.steps, planOptions);
+    const validation = validateCompactBuild(plan.patchedCompact, {
+      buildId: options.targetBuildId,
+      rootBranchId,
+      race
+    });
+    return { parsed, plan, validationErrors: validation.errors };
+  }
+
   const graph = resolveCompactFileToGraph(compact, {
     buildId: options.targetBuildId,
     rootBranchId,
@@ -93,13 +112,6 @@ export function importBuildOrder(
   });
 
   const match = findMergePoint(graph, parsed.steps, matchOptions);
-
-  const planOptions: PlanMergeOptions = {
-    ...matchOptions,
-    race,
-    importName: options.importName ?? parsed.name ?? "Imported Build",
-    outputSkipWorkers: options.outputSkipWorkers ?? true
-  };
 
   const plan = planMerge(compact, graph, parsed.steps, match, planOptions);
 

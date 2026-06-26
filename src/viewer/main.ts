@@ -1078,6 +1078,38 @@ function instantiateCy(elements: ElementDefinition[]): Core {
   });
 }
 
+/**
+ * Render the "no builds yet" state so the viewer is usable before anything has
+ * been imported (e.g. fresh install or after clearing builds for a new patch).
+ */
+function showEmptyState(): void {
+  activeRace = null;
+  activePaths = [];
+  selectedPathIndex = null;
+  activeStepGraph = null;
+  if (cy) {
+    cy.destroy();
+    cy = null;
+  }
+  updatePracticeButtonState();
+  renderPathSelector([]);
+  renderBranchControl(null);
+  setGraphStatus('No builds yet. Click "Import build" to add one.');
+  if (buildOrderEl) {
+    buildOrderEl.className = "build-order muted";
+    buildOrderEl.textContent = 'No builds yet. Use "Import build" to add one.';
+  }
+}
+
+/**
+ * Target build id (file) that owns a race's root: the existing file when the
+ * race already has builds, otherwise a race-named file to create.
+ */
+function buildIdForRace(race: string): string {
+  const existing = appData?.raceOptions.find((option) => option.playerRace === race);
+  return existing ? existing.buildId : race;
+}
+
 function mountGraph(option: PlayerRaceOption): void {
   activeRace = option;
   activePaths = collectBuildOrders(option.graph);
@@ -1262,7 +1294,11 @@ async function bootstrap(): Promise<void> {
     appData = await loadInitialData();
     applyViewerScale(appData.config.ui);
     renderRaceTabs(appData.raceOptions);
-    mountGraph(appData.raceOptions[0]);
+    if (appData.raceOptions.length > 0) {
+      mountGraph(appData.raceOptions[0]);
+    } else {
+      showEmptyState();
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (pathSelectorEl) {
@@ -1400,6 +1436,7 @@ function setupImport(): void {
   const applyBtn = document.getElementById("import-apply") as HTMLButtonElement | null;
   const textEl = document.getElementById("import-text") as HTMLTextAreaElement | null;
   const nameEl = document.getElementById("import-name") as HTMLInputElement | null;
+  const raceEl = document.getElementById("import-race") as HTMLSelectElement | null;
   const keepWorkersEl = document.getElementById("import-keep-workers") as HTMLInputElement | null;
   const resultEl = document.getElementById("import-result");
   const statusEl = document.getElementById("import-status");
@@ -1430,6 +1467,10 @@ function setupImport(): void {
     importPanel.classList.remove("is-hidden");
     importBtn.classList.add("is-active");
     clearPreviewState();
+    // Default the race selector to whatever the user is currently viewing.
+    if (raceEl && activeRace) {
+      raceEl.value = activeRace.playerRace;
+    }
     textEl.focus();
   };
 
@@ -1441,18 +1482,21 @@ function setupImport(): void {
     clearPreviewState();
     if (activeRace) {
       mountGraph(activeRace);
+    } else {
+      showEmptyState();
     }
   };
 
   const buildRequest = (apply: boolean): ImportRequest | null => {
-    if (!activeRace) {
+    const race = (raceEl?.value || activeRace?.playerRace) as ImportRequest["race"] | undefined;
+    if (!race) {
       setStatus("Select a race first.", "error");
       return null;
     }
     return {
       text: textEl.value,
-      buildId: activeRace.buildId,
-      race: activeRace.playerRace,
+      buildId: buildIdForRace(race),
+      race,
       name: nameEl?.value || undefined,
       keepWorkers: Boolean(keepWorkersEl?.checked),
       apply
@@ -1533,6 +1577,8 @@ function setupImport(): void {
   previewBtn?.addEventListener("click", () => void runPreview());
   applyBtn.addEventListener("click", () => void runApply());
   nameEl?.addEventListener("input", () => updateImportBranchLabel(nameEl.value));
+  // Changing the target race invalidates any computed preview.
+  raceEl?.addEventListener("change", () => clearPreviewState());
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && importModeActive && !isEditableTarget(event.target)) {
       exitImportMode();
@@ -1548,6 +1594,10 @@ async function refreshData(): Promise<void> {
     0,
     appData.raceOptions.findIndex((option) => option.playerRace === previousRace)
   );
+  if (appData.raceOptions.length === 0) {
+    showEmptyState();
+    return;
+  }
   const tabs = raceTabsEl?.querySelectorAll<HTMLButtonElement>(".race-tab");
   if (tabs && tabs[targetIndex]) {
     tabs[targetIndex].click();

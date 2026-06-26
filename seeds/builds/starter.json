@@ -1,0 +1,17 @@
+{
+  "terran": {
+    "steps": [
+      { "time": "0:00", "supply": 12, "action": "Import a build order to begin (Terran)" }
+    ]
+  },
+  "zerg": {
+    "steps": [
+      { "time": "0:00", "supply": 12, "action": "Import a build order to begin (Zerg)" }
+    ]
+  },
+  "protoss": {
+    "steps": [
+      { "time": "0:00", "supply": 12, "action": "Import a build order to begin (Protoss)" }
+    ]
+  }
+}

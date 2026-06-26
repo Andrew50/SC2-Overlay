@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import type { AnySchema } from "ajv";
@@ -145,24 +145,33 @@ function buildIdFromFilePath(buildsRootPath: string, filePath: string): string {
 
 function loadBuildSources(buildsPathFromConfig: string): Map<string, BuildSource> {
   const buildsRootPath = path.resolve(resolveRootDir(), buildsPathFromConfig);
-  const jsonFiles = collectJsonFiles(buildsRootPath);
-  if (jsonFiles.length === 0) {
-    throw new Error(`No build JSON files found under: ${buildsPathFromConfig}`);
+  const sources = new Map<string, BuildSource>();
+
+  // The app is allowed to launch with no builds yet (e.g. after clearing them
+  // to re-import for a new patch), so an empty or missing directory is fine.
+  if (!existsSync(buildsRootPath)) {
+    return sources;
   }
 
-  const sources = new Map<string, BuildSource>();
+  const jsonFiles = collectJsonFiles(buildsRootPath);
   for (const filePath of jsonFiles) {
     const buildId = buildIdFromFilePath(buildsRootPath, filePath);
     if (sources.has(buildId)) {
       throw new Error(`Duplicate auto-derived build id "${buildId}" from file: ${filePath}`);
     }
-    const rawBuild = readJsonFile<unknown>(filePath);
-    const validatedBuild = ensureValidBuild(rawBuild, buildId);
-    sources.set(buildId, {
-      id: buildId,
-      filePath,
-      build: validatedBuild
-    });
+    // Skip (rather than crash on) a single malformed file so one bad import
+    // never blocks the whole app from loading.
+    try {
+      const rawBuild = readJsonFile<unknown>(filePath);
+      const validatedBuild = ensureValidBuild(rawBuild, buildId);
+      sources.set(buildId, {
+        id: buildId,
+        filePath,
+        build: validatedBuild
+      });
+    } catch (error) {
+      console.warn(`Skipping invalid build file "${filePath}": ${(error as Error).message}`);
+    }
   }
   return sources;
 }
@@ -187,12 +196,8 @@ function discoverRaceRoots(sources: Map<string, BuildSource>): Map<PlayerRace, R
     }
   }
 
-  for (const playerRace of RACE_ORDER) {
-    if (!roots.has(playerRace)) {
-      throw new Error(`Missing required player root branch "${playerRace}" across all build files.`);
-    }
-  }
-
+  // Roots may be missing entirely (no builds imported yet) or partial (only one
+  // race added so far). Callers handle whichever races are present.
   return roots;
 }
 
@@ -518,31 +523,28 @@ export function loadResolvedGraph(config: AppConfig): ResolvedBuildGraph {
   return raceOptions[0].graph;
 }
 
-function getPrimaryRootForPlayerRace(
-  raceRoots: Map<PlayerRace, RaceRootDefinition>,
-  playerRace: PlayerRace
-): RaceRootDefinition {
-  const root = raceRoots.get(playerRace);
-  if (root) {
-    return root;
-  }
-  throw new Error(`Missing required player root for player race "${playerRace}".`);
-}
-
 export function loadPlayerRaceOptions(config: AppConfig): PlayerRaceOption[] {
   const sources = loadBuildSources(config.data.buildsPath);
   const raceRoots = discoverRaceRoots(sources);
 
-  return RACE_ORDER.map((playerRace) => {
-    const root = getPrimaryRootForPlayerRace(raceRoots, playerRace);
+  // Only surface races that actually have a root defined. Missing races simply
+  // don't appear (the user can import them), so the app still launches with
+  // zero, one, or two races present.
+  return RACE_ORDER.flatMap((playerRace) => {
+    const root = raceRoots.get(playerRace);
+    if (!root) {
+      return [];
+    }
     const graph = resolveBuildById(root.buildId, sources, playerRace);
     graph.rootNodeId = root.branchId;
-    return {
-      playerRace,
-      buildId: root.buildId,
-      label: toTitleCase(playerRace),
-      graph
-    } satisfies PlayerRaceOption;
+    return [
+      {
+        playerRace,
+        buildId: root.buildId,
+        label: toTitleCase(playerRace),
+        graph
+      } satisfies PlayerRaceOption
+    ];
   });
 }
 

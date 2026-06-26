@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CompactBuildFile, ResolvedBuildGraph } from "../types";
 import { resolveCompactFileToGraph } from "../loader";
@@ -25,7 +25,12 @@ export function runImport(buildsPath: string, req: ImportPreviewRequest): Import
     }
 
     const targetPath = targetPathFor(buildsPath, req.buildId);
-    const compact = JSON.parse(readFileSync(targetPath, "utf8")) as CompactBuildFile;
+    // The target file may not exist yet (importing the first build for a race,
+    // or after clearing builds). Start from an empty compact in that case; the
+    // import engine will seed the race root from the imported steps.
+    const compact: CompactBuildFile = existsSync(targetPath)
+      ? (JSON.parse(readFileSync(targetPath, "utf8")) as CompactBuildFile)
+      : {};
 
     const { parsed, plan, validationErrors } = importBuildOrder(compact, req.text, {
       targetBuildId: req.buildId,
@@ -38,6 +43,7 @@ export function runImport(buildsPath: string, req: ImportPreviewRequest): Import
 
     let applied = false;
     if (req.apply && validationErrors.length === 0) {
+      mkdirSync(path.dirname(targetPath), { recursive: true });
       writeFileSync(targetPath, `${JSON.stringify(plan.patchedCompact, null, 2)}\n`, "utf8");
       applied = true;
     }

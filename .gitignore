@@ -2,3 +2,8 @@ node_modules/
 dist/
 dist-electron/
 release/
+
+# Local build-order data. Builds are imported/managed in-app and shared as
+# files directly, not through version control. Only the seed in seeds/builds
+# (used as bundled defaults / import scaffold) is tracked.
+/builds/

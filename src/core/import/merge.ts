@@ -243,6 +243,26 @@ function planAddDecisionOption(
   return finalize(patched, original, "add-decision-option", newBranchId, importLabel(options), null, warnings);
 }
 
+/**
+ * Plan for a brand-new build file/race: there is no existing root for this
+ * race yet, so the import simply becomes the race root branch directly (no
+ * synthetic decision against a placeholder). Used when importing the first
+ * build for a race into an empty/nonexistent file.
+ */
+export function planNewBuild(
+  original: CompactBuildFile,
+  importedSteps: ImportedStep[],
+  options: PlanMergeOptions
+): MergePlan {
+  const patched: CompactBuildFile = structuredClone(original);
+  const rootKey = options.race;
+  const steps = toCompactSteps(importedSteps, options);
+  patched[rootKey] = {
+    steps: steps.length > 0 ? steps : [{ action: humanize(options.importName) }]
+  };
+  return finalize(patched, original, "new-root-child", rootKey, importLabel(options), null, []);
+}
+
 function planNewRootChild(
   patched: CompactBuildFile,
   original: CompactBuildFile,

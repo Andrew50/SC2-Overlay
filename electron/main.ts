@@ -1,5 +1,5 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, screen, shell } from "electron";
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
@@ -476,84 +476,6 @@ function copyPathIfMissing(sourcePath: string, targetPath: string): void {
   cpSync(sourcePath, targetPath, { recursive: true });
 }
 
-function movePathToBackup(sourcePath: string, backupPath: string): void {
-  if (!existsSync(sourcePath)) {
-    return;
-  }
-  mkdirSync(path.dirname(backupPath), { recursive: true });
-  try {
-    renameSync(sourcePath, backupPath);
-  } catch {
-    cpSync(sourcePath, backupPath, { recursive: true });
-    rmSync(sourcePath, { recursive: true, force: true });
-  }
-}
-
-function syncDefaultsOnVersionChange(userDataRoot: string, bundledDefaultsRoot: string): void {
-  const syncVersionMarkerPath = path.join(userDataRoot, ".defaults-sync-version");
-  const currentVersion = app.getVersion();
-  const hasSyncedForCurrentVersion =
-    existsSync(syncVersionMarkerPath) &&
-    process.env.SC2_OVERLAY_DEFAULTS_SYNC_FORCE !== "1" &&
-    (() => {
-      try {
-        return readFileSync(syncVersionMarkerPath, "utf8").trim() === currentVersion;
-      } catch {
-        return false;
-      }
-    })();
-
-  if (hasSyncedForCurrentVersion) {
-    return;
-  }
-
-  const sourceConfigPath = path.join(bundledDefaultsRoot, "config.json");
-  const sourceBuildsPath = path.join(bundledDefaultsRoot, "builds");
-  const targetConfigPath = path.join(userDataRoot, "config.json");
-  const targetBuildsPath = path.join(userDataRoot, "builds");
-
-  const backupStamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupRoot = path.join(userDataRoot, "backups", `${currentVersion}_${backupStamp}`);
-
-  if (existsSync(targetConfigPath)) {
-    movePathToBackup(targetConfigPath, path.join(backupRoot, "config.json"));
-  }
-  if (existsSync(targetBuildsPath)) {
-    movePathToBackup(targetBuildsPath, path.join(backupRoot, "builds"));
-  }
-
-  copyPathIfMissing(sourceConfigPath, targetConfigPath);
-  copyPathIfMissing(sourceBuildsPath, targetBuildsPath);
-
-  mkdirSync(path.dirname(syncVersionMarkerPath), { recursive: true });
-  writeFileSync(syncVersionMarkerPath, currentVersion, "utf8");
-}
-
-function restoreBundledDefaults(userDataRoot: string, bundledDefaultsRoot: string, reason: unknown): void {
-  const sourceConfigPath = path.join(bundledDefaultsRoot, "config.json");
-  const sourceBuildsPath = path.join(bundledDefaultsRoot, "builds");
-  const targetConfigPath = path.join(userDataRoot, "config.json");
-  const targetBuildsPath = path.join(userDataRoot, "builds");
-  const syncVersionMarkerPath = path.join(userDataRoot, ".defaults-sync-version");
-  const currentVersion = app.getVersion();
-  const backupStamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupRoot = path.join(userDataRoot, "backups", `recovery_${currentVersion}_${backupStamp}`);
-
-  console.error("Runtime data failed to load; restoring bundled defaults.", reason);
-
-  if (existsSync(targetConfigPath)) {
-    movePathToBackup(targetConfigPath, path.join(backupRoot, "config.json"));
-  }
-  if (existsSync(targetBuildsPath)) {
-    movePathToBackup(targetBuildsPath, path.join(backupRoot, "builds"));
-  }
-
-  copyPathIfMissing(sourceConfigPath, targetConfigPath);
-  copyPathIfMissing(sourceBuildsPath, targetBuildsPath);
-  mkdirSync(path.dirname(syncVersionMarkerPath), { recursive: true });
-  writeFileSync(syncVersionMarkerPath, currentVersion, "utf8");
-}
-
 function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
   const envRoot = process.env.SC2_OVERLAY_APP_ROOT?.trim();
   const envSchemaRoot = process.env.SC2_OVERLAY_SCHEMA_ROOT?.trim();
@@ -570,7 +492,8 @@ function prepareRuntimePaths(): { dataRoot: string; schemaRoot: string } {
 
   const userDataRoot = resolvePackagedDataRoot();
   mkdirSync(userDataRoot, { recursive: true });
-  syncDefaultsOnVersionChange(userDataRoot, bundledDefaultsRoot);
+  // Seed bundled defaults only when the user has nothing yet (first install).
+  // On version bumps the user's existing config/builds are left untouched.
   copyPathIfMissing(path.join(bundledDefaultsRoot, "config.json"), path.join(userDataRoot, "config.json"));
   copyPathIfMissing(path.join(bundledDefaultsRoot, "builds"), path.join(userDataRoot, "builds"));
   console.log(`Using runtime data root: ${userDataRoot}`);
@@ -600,20 +523,6 @@ function reloadAppData(): InitialAppData {
   return initialData;
 }
 
-function reloadAppDataWithPackagedRecovery(): InitialAppData {
-  try {
-    return reloadAppData();
-  } catch (error) {
-    if (!app.isPackaged) {
-      throw error;
-    }
-
-    const userDataRoot = resolvePackagedDataRoot();
-    const bundledDefaultsRoot = resolveBundledDefaultsRoot(app.getAppPath());
-    restoreBundledDefaults(userDataRoot, bundledDefaultsRoot, error);
-    return reloadAppData();
-  }
-}
 
 function resolveBuildsDirectoryPath(): string {
   if (!initialData) {
@@ -715,7 +624,7 @@ async function bootstrap(): Promise<void> {
   runtimeSchemaRoot = runtimePaths.schemaRoot;
   process.env.SC2_OVERLAY_APP_ROOT = runtimeDataRoot;
   process.env.SC2_OVERLAY_SCHEMA_ROOT = runtimeSchemaRoot;
-  initialData = reloadAppDataWithPackagedRecovery();
+  initialData = reloadAppData();
   mainWindow = createMainWindow(initialData.config);
   setupIpc();
   await loadRenderer(mainWindow);
