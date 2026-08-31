@@ -1,0 +1,9 @@
+{
+  "zerg": {
+    "steps": [
+      { "time": "0:12", "supply": 13, "action": "Overlord" },
+      { "time": "0:50", "supply": 17, "action": "Spawning Pool" },
+      { "time": "1:18", "supply": 18, "action": "Hatchery" }
+    ]
+  }
+}

@@ -7,3 +7,26 @@ release/
 # files directly, not through version control. Only the seed in seeds/builds
 # (used as bundled defaults / import scaffold) is tracked.
 /builds/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs / temp / coverage
+*.log
+npm-debug.log*
+tmp.txt
+.tmp/
+.cache/
+coverage/
+.nyc_output/
+
+# Env (none required today; keep untracked if added later)
+.env
+.env.*
+!.env.example

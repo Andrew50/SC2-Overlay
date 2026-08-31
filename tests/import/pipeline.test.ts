@@ -17,6 +17,10 @@ const ZVT_SALT =
   '$199819|spawningtool.com||~* - C+ 4!?, L D.!% C-!* I1!X!@1!X!@1!Z!C1" !?7"+#J;"@!@>"J D="O!?D#* HI#1 CI#4!@K#<!@S#R!AS#R!AS#R!AS#R!A]$: L]$: Lc$C Cc$C Cg$H';
 
 const FIXTURE = path.resolve(process.cwd(), "tests/fixtures/imports/zvt_199819.txt");
+const ZERG_OPENER_FIXTURE = path.resolve(
+  process.cwd(),
+  "tests/fixtures/builds/zerg-overlord-opener.json"
+);
 
 test("normalizeAction extracts canonical name, count and note", () => {
   const a = normalizeAction("Roach x4 4 Safety Roaches");
@@ -203,11 +207,9 @@ test("decodeSalt decodes the ZvT SALT string to the expected build", () => {
 });
 
 test("importing the SALT string branches at the race root like the text import", () => {
-  const zpForSalt = JSON.parse(
-    readFileSync(path.resolve(process.cwd(), "builds/zp.json"), "utf8")
-  ) as CompactBuildFile;
-  const { parsed, plan, validationErrors } = importBuildOrder(zpForSalt, ZVT_SALT, {
-    targetBuildId: "zp",
+  const existing = JSON.parse(readFileSync(ZERG_OPENER_FIXTURE, "utf8")) as CompactBuildFile;
+  const { parsed, plan, validationErrors } = importBuildOrder(existing, ZVT_SALT, {
+    targetBuildId: "starter",
     importName: "ZvT (from SALT)"
   });
   assert.equal(parsed.format, "salt");
@@ -216,10 +218,10 @@ test("importing the SALT string branches at the race root like the text import",
 });
 
 test("merge branches at the race root when nothing matches (ZvT fixture)", () => {
-  const zp = JSON.parse(readFileSync(path.resolve(process.cwd(), "builds/zp.json"), "utf8")) as CompactBuildFile;
+  const existing = JSON.parse(readFileSync(ZERG_OPENER_FIXTURE, "utf8")) as CompactBuildFile;
   const input = readFileSync(FIXTURE, "utf8");
-  const { parsed, plan, validationErrors } = importBuildOrder(zp, input, {
-    targetBuildId: "zp",
+  const { parsed, plan, validationErrors } = importBuildOrder(existing, input, {
+    targetBuildId: "starter",
     importName: "ZvT Update Standard Opening"
   });
 

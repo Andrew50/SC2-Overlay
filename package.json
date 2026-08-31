@@ -2,7 +2,7 @@
   "name": "sc2-overlay",
   "version": "0.5.7",
   "private": true,
-  "description": "SC2 build overlay prototype using Electron + TypeScript + HTML/CSS",
+  "description": "Electron overlay for StarCraft II build orders with branching decision trees and Spawning Tool/SALT import",
   "author": {
     "name": "Andrew50",
     "email": "andrew50@users.noreply.github.com"

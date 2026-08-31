@@ -1,66 +1,81 @@
 # SC2 Overlay
 
-A desktop overlay for StarCraft II that walks you through build orders while you play. It sits on top of the game as a small always-on-top window with a game timer and a rolling queue of upcoming actions. When your build has forks—different responses based on what you scout—you pick a branch with hotkeys and the overlay continues down that path.
+[![CI](https://github.com/Andrew50/sc2-overlay/actions/workflows/ci.yml/badge.svg)](https://github.com/Andrew50/sc2-overlay/actions/workflows/ci.yml)
 
-Build data lives in JSON files under `builds/`. Each file is a tree of branches: timed steps (supply, action, timestamp) and decision points where you choose what to do next. The app loads all build files, resolves cross-file references, and presents one graph per player race (Terran, Zerg, Protoss).
+Desktop overlay for StarCraft II that walks through branching build orders while you play.
 
-## Overlay
+![SC2 Overlay running in-game](docs/media/overlay-ingame.jpg)
 
-On launch you pick your race. A countdown runs, then the timer advances in real time and the overlay shows the current step plus the next few actions. Each row includes supply and time when available. Steps that are due soon are highlighted.
+An always-on-top, optionally click-through Electron window shows a live game timer and the next few actions. When a build forks on a scout read, you pick a branch with global hotkeys and the overlay continues down that path.
 
-Global hotkeys (configurable in `config.json`) work while StarCraft is focused:
+Build data is authored as compact JSON trees under `builds/`: timed steps plus decision nodes (up to three options). Related builds share a common opening and only branch where the order actually diverges. The loader validates files against JSON Schema, resolves cross-file references, and produces one graph per player race.
 
-- **F1 / F2 / F3** — choose branch option 1, 2, or 3 at the current or next decision
-- **F5 / F6** — jump the timer backward or forward by 5 seconds
-- **F7 / F8** — jump to the previous or next build step
-- **F4** — reset back to race selection
-- **F9** — open the build viewer
+![Build order viewer with branching graph](docs/media/build-viewer.png)
 
-You can also pre-select a branch before you reach a decision: the choice is remembered and applied when the timer gets there. The header shows which branch path you are on.
+## Highlights
 
-The overlay window is transparent, frameless, and optionally click-through so it does not block the game.
+- **Shared-prefix build graphs** — common openings stay as one branch; decisions appear only at real divergence, including timing/supply-tolerant matching during import.
+- **Spawning Tool / SALT import** — parses a linear build order, finds the longest matching path in the existing tree, and merges at the first difference with a preview/diff before writing JSON.
+- **In-game overlay controls** — global hotkeys choose branches, scrub the timer, and jump steps while StarCraft has focus (including Linux Wayland/X11 handling in the Electron main process).
+- **Build viewer** — Cytoscape graph of the full tree, path list, editable decision labels, branch enable/disable, and a practice mode that locks one fixed line.
+- **Packaged desktop app** — Vite + electron-builder produce Linux/macOS/Windows artifacts; GitHub Actions builds releases on version tags.
 
-## Decisions
+**Stack:** TypeScript, Electron, Vite, AJV, Cytoscape, Node.js test runner
 
-Builds branch at decision nodes. Each decision presents up to three labeled options—usually tied to scouting reads or matchup choices (for example, “Proxy 2-Rax” vs “At-home Barracks”). Picking an option switches the overlay to that branch’s steps.
+## Running locally
 
-Decision trees share common openings where possible and split only when the build order actually diverges. That keeps early game steps identical across related builds until a real choice appears.
+Requires Node.js 22+ (CI uses 22).
 
-## Build viewer
+```bash
+npm ci
+npm run dev          # Electron overlay + Vite
+```
 
-Press F9 (or use the toolbar button) to open the Build Orders window. This is a separate window with:
+Build JSON is local and gitignored. Packaged installs seed from `seeds/builds/`. For local development you can start empty (the app launches with no races) or copy the seed:
 
-- An interactive graph of the full build tree (steps, branch points, terminal nodes)
-- A list of every complete path from opener to finish
-- A step-by-step readout for the selected path
+```bash
+mkdir -p builds && cp seeds/builds/starter.json builds/
+```
 
-Click nodes or paths to explore how builds connect. The graph uses color to distinguish regular steps, branch points, and end nodes.
-
-## Import builds
-
-In the viewer, **Import build** accepts a Spawning Tool build order (the table under “Build Order”) or a SALT string. The importer parses the steps, matches them against the existing tree for the active race, and merges at the first point of difference—reusing shared prefixes instead of duplicating them. Preview the diff before applying; the patched JSON is written back to the build file.
-
-CLI import is also available:
+Then import real builds from the viewer (F9) or:
 
 ```bash
 npm run import-build -- --help
 ```
 
-## Practice mode
-
-In the viewer, select a complete build path and click **Practice this build**. The overlay switches back with that path’s branch choices already set. Decisions are locked so you run through one fixed build order without re-picking forks—useful for drilling a specific line until the timings stick.
-
-## Development
+Other useful commands:
 
 ```bash
-npm install
-npm run dev          # overlay (Electron + Vite)
-npm run view         # build viewer only (browser)
-npm run validate:data
-npm run test
-npm run builds       # print all build paths to the terminal
+npm run view             # build viewer in the browser
+npm run typecheck
+npm test
+npm run validate:data    # load config + resolve build graphs
+npm run builds           # print every root→leaf path
+npm run dist             # package for the current OS
 ```
 
-Packaged builds: `npm run dist` (or `dist:linux`, `dist:mac`, `dist:win`).
+Build authoring rules: [BUILD_FORMAT.md](BUILD_FORMAT.md).
 
-Build authoring format and naming conventions are documented in [BUILD_FORMAT.md](BUILD_FORMAT.md).
+## Tests
+
+```bash
+npm test
+```
+
+Covers action normalization, Spawning Tool/SALT parsing, merge/divergence behavior, graph rendering for race-root decisions, and decision-label updates. CI runs typecheck, tests, and data validation on pushes and pull requests to `main`.
+
+## Project layout
+
+- `electron/` — main process: windows, global shortcuts, IPC, packaged data bootstrap
+- `src/renderer.ts` — overlay UI and timer / decision flow
+- `src/viewer/` — build-order graph UI
+- `src/core/` — loader, graph traversal, import/merge, branch/label mutations
+- `schemas/` — JSON Schema for config and compact build files
+- `seeds/builds/` — bundled first-run scaffold
+- `scripts/` — CLI import, validation, path dumping
+- `tests/` — unit tests and fixtures
+
+## Releases
+
+- Tag `v*` (or run **Publish Release** manually) to build Linux/macOS/Windows installers and attach them to a GitHub Release.
+- **Build Desktop Artifacts** builds the same packages without publishing.
