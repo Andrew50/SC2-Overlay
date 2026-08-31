@@ -90,5 +90,3 @@ Covers action normalization, Spawning Tool/SALT parsing, merge/divergence behavi
 ## Releases
 
 Tag `v*` (or run **Publish Release**) to build Linux/macOS/Windows installers and attach them to a GitHub Release. **Build Desktop Artifacts** produces the same packages without publishing.
-
-*Unofficial fan project. Not affiliated with or endorsed by Blizzard Entertainment.*
